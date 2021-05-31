@@ -251,7 +251,8 @@ class SMPLXSetTexture(bpy.types.Operator):
                 links.new(node_texture.outputs[0], node_shader.inputs[0])
 
         # Switch viewport shading to Material Preview to show texture
-        bpy.context.space_data.shading.type = 'MATERIAL'
+        if bpy.context.space_data.type == 'VIEW_3D':
+            bpy.context.space_data.shading.type = 'MATERIAL'
 
         return {'FINISHED'}
 
