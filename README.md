@@ -51,6 +51,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 + Sergey Prokudin: rainbow texture data
 
++ Vassilis Choutas (betas-to-joints regressor)
+
 ## Changelog
 + 20210505: Initial release
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
