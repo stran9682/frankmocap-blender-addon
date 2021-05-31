@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 5, 25),
+    "version": (2021, 5, 31),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -175,7 +175,7 @@ class SMPLXAddGender(bpy.types.Operator):
         return {'FINISHED'}
 
 class SMPLXSetTexture(bpy.types.Operator):
-    bl_idname = "scene.smplx_set_texture"
+    bl_idname = "object.smplx_set_texture"
     bl_label = "Set"
     bl_description = ("Set selected texture")
     bl_options = {'REGISTER', 'UNDO'}
@@ -969,7 +969,7 @@ class SMPLX_PT_Model(bpy.types.Panel):
         row = col.row(align=True)
         split = row.split(factor=0.75, align=True)
         split.prop(context.window_manager.smplx_tool, "smplx_texture")
-        split.operator("scene.smplx_set_texture", text="Set")
+        split.operator("object.smplx_set_texture", text="Set")
 
 class SMPLX_PT_Shape(bpy.types.Panel):
     bl_label = "Shape"

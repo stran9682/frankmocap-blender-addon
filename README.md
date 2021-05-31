@@ -49,7 +49,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 ## Acknowledgements
 + We thank [Meshcapade](https://meshcapade.com/) for providing the SMPL-X female/male sample textures (`smplx_texture_f_alb.png`, `smplx_texture_m_alb.png`) under [Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
-+ Sergey Prokudin: rainbow texture data
++ Sergey Prokudin (rainbow texture data)
 
 + Vassilis Choutas (betas-to-joints regressor)
 
