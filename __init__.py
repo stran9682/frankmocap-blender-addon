@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 5, 31),
+    "version": (2021, 6, 10),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -137,6 +137,11 @@ class PG_SMPLXProperties(PropertyGroup):
         items = [ ("SHAPE_POSE", "All: Shape + Posecorrectives", "Export shape keys for body shape and pose correctives"), ("SHAPE", "Reduced: Shape space only", "Export only shape keys for body shape"), ("NONE", "None: Apply shape space", "Do not export any shape keys, shape keys for body shape will be baked into mesh") ],
     )
 
+    smplx_height: FloatProperty(name="Target Height [m]", default=1.70, min=1.4, max=2.2)
+
+    smplx_weight: FloatProperty(name="Target Weight [kg]", default=60, min=40, max=110)
+
+
 class SMPLXAddGender(bpy.types.Operator):
     bl_idname = "scene.smplx_add_gender"
     bl_label = "Add"
@@ -251,13 +256,87 @@ class SMPLXSetTexture(bpy.types.Operator):
                 links.new(node_texture.outputs[0], node_shader.inputs[0])
 
         # Switch viewport shading to Material Preview to show texture
-        if bpy.context.space_data.type == 'VIEW_3D':
-            bpy.context.space_data.shading.type = 'MATERIAL'
+        if bpy.context.space_data:
+            if bpy.context.space_data.type == 'VIEW_3D':
+                bpy.context.space_data.shading.type = 'MATERIAL'
 
         return {'FINISHED'}
 
-class SMPLXRandomShapes(bpy.types.Operator):
-    bl_idname = "object.smplx_random_shapes"
+class SMPLXMeasurementsToShape(bpy.types.Operator):
+    bl_idname = "object.smplx_measurements_to_shape"
+    bl_label = "Measurements To Shape"
+    bl_description = ("Calculate and set shape parameters for specified measurements")
+    bl_options = {'REGISTER', 'UNDO'}
+
+    betas_regressor_female = None
+    betas_regressor_male = None
+    # betas_regressor_neutral = None
+
+    @classmethod
+    def poll(cls, context):
+        try:
+            # Enable button only if mesh is active object
+            return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
+        except: return False
+
+    def execute(self, context):
+        obj = bpy.context.object
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        if self.betas_regressor_female is None:
+            path = os.path.dirname(os.path.realpath(__file__))
+            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_female.json")
+            with open(regressor_path) as f:
+                data = json.load(f)
+                self.betas_regressor_female = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+
+        if self.betas_regressor_male is None:
+            path = os.path.dirname(os.path.realpath(__file__))
+            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_male.json")
+            with open(regressor_path) as f:
+                data = json.load(f)
+                self.betas_regressor_male = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+
+        """
+        if self.betas_regressor_neutral is None:
+            path = os.path.dirname(os.path.realpath(__file__))
+            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_neutral.json")
+            with open(regressor_path) as f:
+                data = json.load(f)
+                self.betas_regressor_neutral = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+        """
+
+        if "female" in obj.name:
+            (A, B) = self.betas_regressor_female
+        elif "male" in obj.name:
+            (A, B) = self.betas_regressor_male
+        else:
+            #(A, B) = self.betas_regressor_neutral
+            self.report({"ERROR"}, "No measurements-to-betas regressor available for neutral model")
+            return {"CANCELLED"}
+
+
+        # Calculate beta values from measurements
+        height_m = context.window_manager.smplx_tool.smplx_height
+        height_cm = height_m * 100.0
+        weight_kg = context.window_manager.smplx_tool.smplx_weight
+
+        v_root = pow(weight_kg, 1.0/3.0)
+        measurements = np.asarray([[height_cm], [v_root]])
+        betas = A @ measurements + B
+
+        num_betas = betas.shape[0]
+        for i in range(num_betas):
+            name = f"Shape{i:03d}"
+            key_block = obj.data.shape_keys.key_blocks[name]
+            key_block.value = betas[i, 0]
+
+        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+
+        return {'FINISHED'}
+
+class SMPLXRandomShape(bpy.types.Operator):
+    bl_idname = "object.smplx_random_shape"
     bl_label = "Random"
     bl_description = ("Sets all shape blend shape keys to a random value")
     bl_options = {'REGISTER', 'UNDO'}
@@ -280,8 +359,8 @@ class SMPLXRandomShapes(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class SMPLXResetShapes(bpy.types.Operator):
-    bl_idname = "object.smplx_reset_shapes"
+class SMPLXResetShape(bpy.types.Operator):
+    bl_idname = "object.smplx_reset_shape"
     bl_label = "Reset"
     bl_description = ("Resets all blend shape keys for shape")
     bl_options = {'REGISTER', 'UNDO'}
@@ -304,8 +383,8 @@ class SMPLXResetShapes(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class SMPLXRandomExpressionShapes(bpy.types.Operator):
-    bl_idname = "object.smplx_random_expression_shapes"
+class SMPLXRandomExpressionShape(bpy.types.Operator):
+    bl_idname = "object.smplx_random_expression_shape"
     bl_label = "Random Face Expression"
     bl_description = ("Sets all face expression blend shape keys to a random value")
     bl_options = {'REGISTER', 'UNDO'}
@@ -326,8 +405,8 @@ class SMPLXRandomExpressionShapes(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class SMPLXResetExpressionShapes(bpy.types.Operator):
-    bl_idname = "object.smplx_reset_expression_shapes"
+class SMPLXResetExpressionShape(bpy.types.Operator):
+    bl_idname = "object.smplx_reset_expression_shape"
     bl_label = "Reset"
     bl_description = ("Resets all blend shape keys for face expression")
     bl_options = {'REGISTER', 'UNDO'}
@@ -982,10 +1061,15 @@ class SMPLX_PT_Shape(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
 
+        col.prop(context.window_manager.smplx_tool, "smplx_height")
+        col.prop(context.window_manager.smplx_tool, "smplx_weight")
+        col.operator("object.smplx_measurements_to_shape")
+        col.separator()
+
         row = col.row(align=True)
         split = row.split(factor=0.75, align=True)
-        split.operator("object.smplx_random_shapes")
-        split.operator("object.smplx_reset_shapes")
+        split.operator("object.smplx_random_shape")
+        split.operator("object.smplx_reset_shape")
         col.separator()
 
         col.operator("object.smplx_snap_ground_plane")
@@ -995,8 +1079,8 @@ class SMPLX_PT_Shape(bpy.types.Panel):
         col.separator()
         row = col.row(align=True)
         split = row.split(factor=0.75, align=True)
-        split.operator("object.smplx_random_expression_shapes")
-        split.operator("object.smplx_reset_expression_shapes")
+        split.operator("object.smplx_random_expression_shape")
+        split.operator("object.smplx_reset_expression_shape")
 
 class SMPLX_PT_Pose(bpy.types.Panel):
     bl_label = "Pose"
@@ -1059,10 +1143,11 @@ classes = [
     PG_SMPLXProperties,
     SMPLXAddGender,
     SMPLXSetTexture,
-    SMPLXRandomShapes,
-    SMPLXResetShapes,
-    SMPLXRandomExpressionShapes,
-    SMPLXResetExpressionShapes,
+    SMPLXMeasurementsToShape,
+    SMPLXRandomShape,
+    SMPLXResetShape,
+    SMPLXRandomExpressionShape,
+    SMPLXResetExpressionShape,
     SMPLXSnapGroundPlane,
     SMPLXUpdateJointLocations,
     SMPLXSetPoseshapes,
