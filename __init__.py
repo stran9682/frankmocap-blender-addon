@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 6, 10),
+    "version": (2021, 6, 11),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -329,7 +329,15 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
         for i in range(num_betas):
             name = f"Shape{i:03d}"
             key_block = obj.data.shape_keys.key_blocks[name]
-            key_block.value = betas[i, 0]
+            value = betas[i, 0]
+
+            # Adjust key block min/max range to value
+            if value < key_block.slider_min:
+                key_block.slider_min = value
+            elif value > key_block.slider_max:
+                key_block.slider_max = value
+
+            key_block.value = value
 
         bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
@@ -993,8 +1001,10 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
         # Rename armature and skinned mesh to not contain Blender copy suffix
         if "female" in skinned_mesh.name:
             gender = "female"
-        else:
+        elif "male" in skinned_mesh.name:
             gender = "male"
+        else:
+            gender = "neutral"
 
         target_mesh_name = "SMPLX-mesh-%s" % gender
         target_armature_name = "SMPLX-%s" % gender

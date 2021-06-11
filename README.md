@@ -59,7 +59,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 ## Changelog
 + 20210505: Initial release
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
-+ 20210610: Added option to set shape from height and weight values for female and male models
++ 20210611: Added option to set shape from height and weight values for female and male models
 
 ## Contact
 + smplx-blender@tue.mpg.de
