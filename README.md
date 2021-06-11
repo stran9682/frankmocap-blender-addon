@@ -9,9 +9,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 # Features
 + Add female/male/neutral specific SMPL-X mesh to current scene
 + Set sample albedo texture
-+ Position feet on ground plane (z=0)
++ Set body shape from height and weight measurements
 + Randomize/reset shape
 + Update joint locations
++ Position feet on ground plane (z=0)
 + Randomize/reset face expression shape
 + Enable/disable corrective poseshapes
 + Change hand pose (flat, relaxed)
