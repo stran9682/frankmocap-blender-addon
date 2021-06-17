@@ -17,7 +17,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + Enable/disable corrective poseshapes
 + Change hand pose (flat, relaxed)
 + Write current pose in SMPL-X theta notation to console
-+ Load pose from .pkl file (full pose with 55 joints in Rodrigues notation)
++ Load pose from .pkl file
+    + Format: Full body pose with 55 joints in Rodrigues notation
+    + Over 3000 sample poses are available at https://agora.is.tuebingen.mpg.de/
+        + Sign In > Download > Ground Truth Fittings > SMPL-X fits
 + FBX export to Unity
     + Exports mesh in default T-Pose with flat hands
     + Imported FBX will show up in Unity inspector without rotations and without scaling
@@ -25,6 +28,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
         + Body shape and posecorrectives
         + Body shape without posecorrectives
         + None (bakes current body shape into mesh)
+
 ## Installation
 1. Blender>Edit>Preferences>Add-ons>Install
 2. Select downloaded SMPL-X for Blender add-on ZIP file (`smplx_blender_addon-YYYYMMDD.zip`) and install
