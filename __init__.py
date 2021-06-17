@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 6, 11),
+    "version": (2021, 6, 17),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -898,6 +898,113 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
 
         return {'FINISHED'}
 
+class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
+    bl_idname = "object.smplx_add_animation"
+    bl_label = "Add AMASS animation"
+    bl_description = ("Load AMASS animation and create animated SMPL-X body")
+    bl_options = {'REGISTER', 'UNDO'}
+
+    filter_glob: StringProperty(
+        default="*.npz",
+        options={'HIDDEN'}
+    )
+
+    @classmethod
+    def poll(cls, context):
+        try:
+            # Always enable button
+            return True
+        except: return False
+
+    def execute(self, context):
+
+        target_framerate = 60
+
+        # Load .npz file
+        print("Loading: " + self.filepath)
+        with np.load(self.filepath) as data:
+            # Check for valid AMASS file
+            if ("trans" not in data) or ("gender" not in data) or ("mocap_framerate" not in data) or ("betas" not in data) or ("poses" not in data):
+                self.report({"ERROR"}, "Invalid AMASS animation data file")
+                return {"CANCELLED"}
+
+            trans = data["trans"]
+            gender = str(data["gender"])
+            mocap_framerate = int(data["mocap_framerate"])
+            betas = data["betas"]
+            poses = data["poses"]
+
+            if mocap_framerate < target_framerate:
+                self.report({"ERROR"}, f"Mocap framerate ({mocap_framerate}) below target framerate ({target_framerate})")
+                return {"CANCELLED"}
+
+        if (context.active_object is not None):
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Add gender specific model
+        context.window_manager.smplx_tool.smplx_gender = gender
+        context.window_manager.smplx_tool.smplx_handpose = "flat"
+        bpy.ops.scene.smplx_add_gender()
+
+        obj = context.view_layer.objects.active
+        armature = obj.parent
+
+        # Set shape and update joint locations
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for index, beta in enumerate(betas):
+            key_block_name = f"Shape{index:03}"
+
+            if key_block_name in obj.data.shape_keys.key_blocks:
+                obj.data.shape_keys.key_blocks[key_block_name].value = beta
+            else:
+                print(f"ERROR: No key block for: {key_block_name}")
+
+        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+
+        # Keyframe poses
+        step_size = int(mocap_framerate / target_framerate)
+
+        num_frames = trans.shape[0]
+        num_keyframes = int(num_frames / step_size)
+
+        print(f"Adding keyframes: {num_keyframes}")
+
+        context.scene.render.fps = target_framerate
+        context.scene.frame_start = 1
+        if num_keyframes > context.scene.frame_end:
+            context.scene.frame_end = num_keyframes
+
+        for index, frame in enumerate(range(0, num_frames, step_size)):
+            if (index % 100) == 0:
+                print(f"  {index}/{num_keyframes}")
+            current_frame = index + 1
+            context.scene.frame_set(current_frame)
+            current_pose = poses[frame].reshape(-1, 3)
+            current_trans = trans[frame]
+            for index, bone_name in enumerate(SMPLX_JOINT_NAMES):
+                pose_rodrigues = current_pose[index]
+                set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
+
+                if bone_name == "pelvis":
+                    # Rotate pelvis so that standing body is along Blender's Z axis facing along negative Y axis
+                    quat_x_90_cw = Quaternion((1.0, 0.0, 0.0), radians(-90))
+                    pelvis_rotation = armature.pose.bones[bone_name].rotation_quaternion
+                    armature.pose.bones[bone_name].rotation_quaternion = quat_x_90_cw @ pelvis_rotation
+
+                    # Set pelvis location and keyframe it
+                    armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[2], -current_trans[1]))
+                    armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
+
+                # Keyframe bone rotation
+                armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
+
+                # TODO Keyframe corrective poseshapes
+
+        print(f"  {num_keyframes}/{num_keyframes}")
+        context.scene.frame_set(1)
+
+        return {'FINISHED'}
+
 class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
     bl_idname = "object.smplx_export_unity_fbx"
     bl_label = "Export Unity FBX"
@@ -1118,6 +1225,17 @@ class SMPLX_PT_Pose(bpy.types.Panel):
         col.separator()
         col.operator("object.smplx_load_pose")
 
+class SMPLX_PT_Animation(bpy.types.Panel):
+    bl_label = "Animation"
+    bl_category = "SMPL-X"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.operator("object.smplx_add_animation")
+
 class SMPLX_PT_Export(bpy.types.Panel):
     bl_label = "Export"
     bl_category = "SMPL-X"
@@ -1166,10 +1284,12 @@ classes = [
     SMPLXWritePose,
     SMPLXLoadPose,
     SMPLXResetPose,
+    SMPLXAddAnimation,
     SMPLXExportUnityFBX,
     SMPLX_PT_Model,
     SMPLX_PT_Shape,
     SMPLX_PT_Pose,
+    SMPLX_PT_Animation,
     SMPLX_PT_Export
 ]
 
