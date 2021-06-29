@@ -21,6 +21,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + Format: Full body pose with 55 joints in Rodrigues notation
     + Over 3000 sample poses are available at https://agora.is.tuebingen.mpg.de/
         + Sign In > Download > Ground Truth Fittings > SMPL-X fits
++ Create animated body from AMASS SMPL-X animation .npz file
 + FBX export to Unity
     + Exports mesh in default T-Pose with flat hands
     + Imported FBX will show up in Unity inspector without rotations and without scaling
@@ -65,6 +66,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20210505: Initial release
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
 + 20210611: Added option to set shape from height and weight values for female and male models
++ 20210629: Added option to create animated body from AMASS SMPL-X animation file
 
 ## Contact
 + smplx-blender@tue.mpg.de

@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 6, 17),
+    "version": (2021, 6, 29),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -900,13 +900,19 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
 
 class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     bl_idname = "object.smplx_add_animation"
-    bl_label = "Add AMASS animation"
+    bl_label = "Add AMASS Animation"
     bl_description = ("Load AMASS animation and create animated SMPL-X body")
     bl_options = {'REGISTER', 'UNDO'}
 
     filter_glob: StringProperty(
         default="*.npz",
         options={'HIDDEN'}
+    )
+
+    keyframe_corrective_pose_weights: BoolProperty(
+        name="Use keyframed corrective pose weights",
+        description="Keyframe the weights of the corrective pose shapes for each frame. This increases animation load time and slows down editor real-time playback.",
+        default=False
     )
 
     @classmethod
@@ -949,6 +955,12 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         obj = context.view_layer.objects.active
         armature = obj.parent
 
+        # Append animation name to armature name
+        armature.name = armature.name + "_" + os.path.basename(self.filepath).replace(".npz", "")
+
+        context.scene.render.fps = target_framerate
+        context.scene.frame_start = 1
+
         # Set shape and update joint locations
         bpy.ops.object.mode_set(mode='OBJECT')
         for index, beta in enumerate(betas):
@@ -967,10 +979,11 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         num_frames = trans.shape[0]
         num_keyframes = int(num_frames / step_size)
 
-        print(f"Adding keyframes: {num_keyframes}")
+        if self.keyframe_corrective_pose_weights:
+            print(f"Adding pose keyframes with keyframed corrective pose weights: {num_keyframes}")
+        else:
+            print(f"Adding pose keyframes: {num_keyframes}")
 
-        context.scene.render.fps = target_framerate
-        context.scene.frame_start = 1
         if num_keyframes > context.scene.frame_end:
             context.scene.frame_end = num_keyframes
 
@@ -998,7 +1011,13 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                 # Keyframe bone rotation
                 armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
 
-                # TODO Keyframe corrective poseshapes
+            if self.keyframe_corrective_pose_weights:
+                # Calculate corrective poseshape weights for current pose and keyframe them.
+                # Note: This significantly increases animation load time and also reduces real-time playback speed in Blender viewport.
+                bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
+                for key_block in obj.data.shape_keys.key_blocks:
+                    if key_block.name.startswith("Pose"):
+                        key_block.keyframe_insert("value", frame=current_frame)
 
         print(f"  {num_keyframes}/{num_keyframes}")
         context.scene.frame_set(1)
