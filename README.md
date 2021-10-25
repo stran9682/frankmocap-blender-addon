@@ -31,11 +31,16 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
         + None (bakes current body shape into mesh)
 
 ## Installation
-1. Blender>Edit>Preferences>Add-ons>Install
-2. Select downloaded SMPL-X for Blender add-on ZIP file (`smplx_blender_addon-YYYYMMDD.zip`) and install
-3. Enable SMPL-X for Blender add-on
-4. Enable sidebar in 3D Viewport>View>Sidebar
-5. SMPL-X tool will show up in sidebar
+1. Register at https://smpl-x.is.tue.mpg.de and download the SMPL-X for Blender add-on. The ZIP release file will include the required SMPL-X model which is not included in the code repository.
+2. Blender>Edit>Preferences>Add-ons>Install
+3. Select downloaded SMPL-X for Blender add-on ZIP file (`smplx_blender_addon-YYYYMMDD.zip`) and install
+4. Enable SMPL-X for Blender add-on
+5. Enable sidebar in 3D Viewport>View>Sidebar
+6. SMPL-X tool will show up in sidebar
+
+## Usage
++ [Short overview video](https://www.youtube.com/watch?v=DY2k29Jef94)
++ [CVPR 2021 tutorial video](https://www.youtube.com/watch?v=m8i00zG6mZI&t=107s)
 
 ## Notes
 + The add-on GUI (gender, texture, hand pose) does not reflect the state of the currently selected SMPL-X model if you work with multiple models in one scene.
