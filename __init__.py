@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 6, 29),
+    "version": (2021, 11, 15),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -900,8 +900,8 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
 
 class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     bl_idname = "object.smplx_add_animation"
-    bl_label = "Add AMASS Animation"
-    bl_description = ("Load AMASS animation and create animated SMPL-X body")
+    bl_label = "Add Animation"
+    bl_description = ("Load AMASS (SMPL-X) animation and create animated SMPL-X body")
     bl_options = {'REGISTER', 'UNDO'}
 
     filter_glob: StringProperty(
@@ -930,13 +930,13 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         print("Loading: " + self.filepath)
         with np.load(self.filepath) as data:
             # Check for valid AMASS file
-            if ("trans" not in data) or ("gender" not in data) or ("mocap_framerate" not in data) or ("betas" not in data) or ("poses" not in data):
+            if ("trans" not in data) or ("gender" not in data) or (("mocap_frame_rate" not in data) and ("mocap_framerate" not in data)) or ("betas" not in data) or ("poses" not in data):
                 self.report({"ERROR"}, "Invalid AMASS animation data file")
                 return {"CANCELLED"}
 
             trans = data["trans"]
             gender = str(data["gender"])
-            mocap_framerate = int(data["mocap_framerate"])
+            mocap_framerate = int(data["mocap_frame_rate"]) if "mocap_frame_rate" in data else int(data["mocap_framerate"])
             betas = data["betas"]
             poses = data["poses"]
 
