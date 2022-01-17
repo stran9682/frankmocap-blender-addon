@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2021, 11, 15),
+    "version": (2022, 1, 17),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -270,7 +270,7 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
 
     betas_regressor_female = None
     betas_regressor_male = None
-    # betas_regressor_neutral = None
+    betas_regressor_neutral = None
 
     @classmethod
     def poll(cls, context):
@@ -297,24 +297,22 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
                 data = json.load(f)
                 self.betas_regressor_male = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
 
-        """
         if self.betas_regressor_neutral is None:
             path = os.path.dirname(os.path.realpath(__file__))
             regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_neutral.json")
             with open(regressor_path) as f:
                 data = json.load(f)
                 self.betas_regressor_neutral = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
-        """
 
-        if "female" in obj.name:
+        if "female" in obj.name.lower():
             (A, B) = self.betas_regressor_female
-        elif "male" in obj.name:
+        elif "male" in obj.name.lower():
             (A, B) = self.betas_regressor_male
+        elif "neutral" in obj.name.lower():
+            (A, B) = self.betas_regressor_neutral
         else:
-            #(A, B) = self.betas_regressor_neutral
-            self.report({"ERROR"}, "No measurements-to-betas regressor available for neutral model")
+            self.report({"ERROR"}, f"Cannot derive gender from mesh object name: {obj.name}")
             return {"CANCELLED"}
-
 
         # Calculate beta values from measurements
         height_m = context.window_manager.smplx_tool.smplx_height

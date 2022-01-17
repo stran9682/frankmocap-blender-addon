@@ -45,7 +45,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 ## Notes
 + The add-on GUI (gender, texture, hand pose) does not reflect the state of the currently selected SMPL-X model if you work with multiple models in one scene.
 + To maintain editor responsiveness the add-on does not automatically recalculate joint locations when you change the shape manually via Blender shape keys. Use the `Update Joint Locations` button to update the joint locations after manual shape key change.
-+ To maintain editor responsiveness the add-on does not automatically recalculate the corrective pose shape keys when edit the armature pose. Use the `Update Pose Shapes` button to update the joint locations after pose changes.
++ To maintain editor responsiveness, the add-on does not automatically recalculate the corrective pose shape keys when you change the armature pose. Use the `Update Pose Shapes` button to update the joint locations after pose changes.
 
 ## License
 + Generated body mesh data using this add-on:
@@ -72,6 +72,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
 + 20210611: Added option to set shape from height and weight values for female and male models
 + 20210629: Added option to create animated body from AMASS SMPL-X animation file
++ 20220117: Add option to set height+weight for neutral SMPL-X model
 
 ## Contact
 + smplx-blender@tue.mpg.de
