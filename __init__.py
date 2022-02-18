@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 1, 17),
+    "version": (2022, 2, 18),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -29,7 +29,7 @@ bl_info = {
 import bpy
 from bpy_extras.io_utils import ImportHelper,ExportHelper # ImportHelper/ExportHelper is a helper class, defines filename and invoke() function which calls the file selector.
 from mathutils import Vector, Quaternion
-from bpy.props import ( BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty )
+from bpy.props import ( BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty )
 from bpy.types import ( PropertyGroup )
 
 import json
@@ -913,6 +913,14 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         default=False
     )
 
+    target_framerate: IntProperty(
+        name="Target framerate [fps]",
+        description="Target framerate for animation in frames-per-second. Lower values will speed up import time.",
+        default=60,
+        min = 1,
+        max = 120
+    )
+
     @classmethod
     def poll(cls, context):
         try:
@@ -922,7 +930,7 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
 
-        target_framerate = 60
+        target_framerate = self.target_framerate
 
         # Load .npz file
         print("Loading: " + self.filepath)

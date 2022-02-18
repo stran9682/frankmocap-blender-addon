@@ -72,7 +72,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
 + 20210611: Added option to set shape from height and weight values for female and male models
 + 20210629: Added option to create animated body from AMASS SMPL-X animation file
-+ 20220117: Add option to set height+weight for neutral SMPL-X model
++ 20220117: Added option to set height+weight for neutral SMPL-X model
++ 20220218: Added option to set animation target framerate. Lower values will speed up import time.
 
 ## Contact
 + smplx-blender@tue.mpg.de
