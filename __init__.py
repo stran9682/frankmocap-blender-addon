@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 2, 18),
+    "version": (2022, 3, 10),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -907,6 +907,14 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'}
     )
 
+    anim_format: EnumProperty(
+        name="Orientation",
+        items=(
+            ("Z_UP", "Z-up (AMASS)", "AMASS Z-up global location"),
+            ("Y_UP", "Y-up", "Y-up global location"),
+        ),
+    )
+
     keyframe_corrective_pose_weights: BoolProperty(
         name="Use keyframed corrective pose weights",
         description="Keyframe the weights of the corrective pose shapes for each frame. This increases animation load time and slows down editor real-time playback.",
@@ -916,7 +924,7 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     target_framerate: IntProperty(
         name="Target framerate [fps]",
         description="Target framerate for animation in frames-per-second. Lower values will speed up import time.",
-        default=60,
+        default=30,
         min = 1,
         max = 120
     )
@@ -990,7 +998,10 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         else:
             print(f"Adding pose keyframes: {num_keyframes}")
 
-        if num_keyframes > context.scene.frame_end:
+        if len(bpy.data.actions) == 0:
+            # Set end frame if we don't have any previous animations in the scene
+            context.scene.frame_end = num_keyframes
+        elif num_keyframes > context.scene.frame_end:
             context.scene.frame_end = num_keyframes
 
         for index, frame in enumerate(range(0, num_frames, step_size)):
@@ -1005,13 +1016,17 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                 set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
 
                 if bone_name == "pelvis":
-                    # Rotate pelvis so that standing body is along Blender's Z axis facing along negative Y axis
-                    quat_x_90_cw = Quaternion((1.0, 0.0, 0.0), radians(-90))
-                    pelvis_rotation = armature.pose.bones[bone_name].rotation_quaternion
-                    armature.pose.bones[bone_name].rotation_quaternion = quat_x_90_cw @ pelvis_rotation
+                    if self.anim_format == "Z_UP": # AMASS Z_UP global location
+                        # Rotate pelvis so that standing body is along Blender's Z axis facing along negative Y axis
+                        quat_x_90_cw = Quaternion((1.0, 0.0, 0.0), radians(-90))
+                        pelvis_rotation = armature.pose.bones[bone_name].rotation_quaternion
+                        armature.pose.bones[bone_name].rotation_quaternion = quat_x_90_cw @ pelvis_rotation
 
-                    # Set pelvis location and keyframe it
-                    armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[2], -current_trans[1]))
+                        armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[2], -current_trans[1]))
+                    else: # Y_UP global location
+                        armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
+
+                    # Keyframe location
                     armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
 
                 # Keyframe bone rotation
