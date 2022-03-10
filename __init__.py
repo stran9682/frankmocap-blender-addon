@@ -1045,6 +1045,27 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
 
         return {'FINISHED'}
 
+class SMPLXExportAlembic(bpy.types.Operator, ExportHelper):
+    bl_idname = "object.smplx_export_alembic"
+    bl_label = "Export Alembic ABC"
+    bl_description = ("Export as Alembic geometry cache")
+    bl_options = {'REGISTER', 'UNDO'}
+
+    filename_ext = ".abc"
+
+    @classmethod
+    def poll(cls, context):
+        try:
+            # Enable button only if mesh is active object
+            return (context.object.type == 'MESH')
+        except: return False
+
+    def execute(self, context):
+        bpy.ops.wm.alembic_export(filepath=self.filepath, selected=True, packuv=False, face_sets=True)
+        print("Exported: " + self.filepath)
+
+        return {'FINISHED'}
+
 class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
     bl_idname = "object.smplx_export_unity_fbx"
     bl_label = "Export Unity FBX"
@@ -1286,6 +1307,9 @@ class SMPLX_PT_Export(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
 
+        col.operator("object.smplx_export_alembic")
+        col.separator()
+
         col.label(text="Shape Keys (Blend Shapes):")
         col.prop(context.window_manager.smplx_tool, "smplx_export_setting_shape_keys")
         col.separator()
@@ -1325,6 +1349,7 @@ classes = [
     SMPLXLoadPose,
     SMPLXResetPose,
     SMPLXAddAnimation,
+    SMPLXExportAlembic,
     SMPLXExportUnityFBX,
     SMPLX_PT_Model,
     SMPLX_PT_Shape,

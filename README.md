@@ -74,7 +74,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20210629: Added option to create animated body from AMASS SMPL-X animation file
 + 20220117: Added option to set height+weight for neutral SMPL-X model
 + 20220218: Added option to set animation target framerate. Lower values will speed up import time.
-+ 20220310: Added option to set animation format orientation. Use 30fps as new default target framerate. Adjust Blender Timeline end frame when adding first animation.
++ 20220310: Added Alembic export button. Added option to set animation format orientation. Use 30fps as new default target framerate. Adjust Blender Timeline end frame when adding first animation.
 
 ## Contact
 + smplx-blender@tue.mpg.de
