@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 11),
+    "version": (2022, 3, 14),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -572,7 +572,7 @@ class SMPLXSetPoseshapes(bpy.types.Operator):
         cost = np.cos(theta)
         mat = np.asarray([[0, -r[2], r[1]],
                         [r[2], 0, -r[0]],
-                        [-r[1], r[0], 0]])
+                        [-r[1], r[0], 0]], dtype=object)
         return(cost*np.eye(3) + (1-cost)*r.dot(r.T) + np.sin(theta)*mat)
 
     # https://github.com/gulvarol/surreal/blob/master/datageneration/main_part1.py
