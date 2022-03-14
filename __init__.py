@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 10),
+    "version": (2022, 3, 11),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -908,10 +908,10 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     )
 
     anim_format: EnumProperty(
-        name="Orientation",
+        name="Format",
         items=(
-            ("Z_UP", "Z-up (AMASS)", "AMASS Z-up global location"),
-            ("Y_UP", "Y-up", "Y-up global location"),
+            ("AMASS", "AMASS", ""),
+            ("SMPL-X", "SMPL-X", ""),
         ),
     )
 
@@ -1012,24 +1012,14 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             current_pose = poses[frame].reshape(-1, 3)
             current_trans = trans[frame]
             for index, bone_name in enumerate(SMPLX_JOINT_NAMES):
-                pose_rodrigues = current_pose[index]
-                set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
-
                 if bone_name == "pelvis":
-                    if self.anim_format == "Z_UP": # AMASS Z_UP global location
-                        # Rotate pelvis so that standing body is along Blender's Z axis facing along negative Y axis
-                        quat_x_90_cw = Quaternion((1.0, 0.0, 0.0), radians(-90))
-                        pelvis_rotation = armature.pose.bones[bone_name].rotation_quaternion
-                        armature.pose.bones[bone_name].rotation_quaternion = quat_x_90_cw @ pelvis_rotation
-
-                        armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[2], -current_trans[1]))
-                    else: # Y_UP global location
-                        armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
-
-                    # Keyframe location
+                    # Keyframe pelvis location
+                    armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
                     armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
 
                 # Keyframe bone rotation
+                pose_rodrigues = current_pose[index]
+                set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
                 armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
 
             if self.keyframe_corrective_pose_weights:
@@ -1039,6 +1029,15 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                 for key_block in obj.data.shape_keys.key_blocks:
                     if key_block.name.startswith("Pose"):
                         key_block.keyframe_insert("value", frame=current_frame)
+
+        if self.anim_format == "AMASS":
+            # AMASS target floor is XY ground plane for SMPL-X template in OpenGL Y-up space (XZ ground plane).
+            # Since SMPL-X Blender model is Z-up (and not Y-up) for rest/template pose, we need to adjust root node rotation to ensure that the resulting animated body is on Blender XY ground plane.
+            bone_name = "root"
+            if armature.pose.bones[bone_name].rotation_mode != 'QUATERNION':
+                armature.pose.bones[bone_name].rotation_mode = 'QUATERNION'
+            armature.pose.bones[bone_name].rotation_quaternion = Quaternion((1.0, 0.0, 0.0), radians(-90))
+            armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=1)
 
         print(f"  {num_keyframes}/{num_keyframes}")
         context.scene.frame_set(1)
@@ -1100,7 +1099,6 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
         armature = skinned_mesh.parent
 
         # Apply armature object location to armature root bone and skinned mesh so that armature and skinned mesh are at origin before export
-        context.view_layer.objects.active = armature
         context.view_layer.objects.active = armature
         armature_offset = Vector(armature.location)
         armature.location = (0, 0, 0)

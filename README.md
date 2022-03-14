@@ -21,7 +21,13 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + Format: Full body pose with 55 joints in Rodrigues notation
     + Over 3000 sample poses are available at https://agora.is.tuebingen.mpg.de/
         + Sign In > Download > Ground Truth Fittings > SMPL-X fits
-+ Create animated body from AMASS SMPL-X animation .npz file
++ Create animated body from animation .npz file (AMASS or SMPL-X)
++ Alembic (.abc) export of animated body as animated vertex geometry cache
+    + Keyframed pose correctives are always baked into the vertices on export
+    + Alembic animation can be imported into other third-party tools
+        + Unreal Engine
+            + Alembic Import settings: Geometry Cache, Scale (100, -100, 100), Rotation (90, 0, 0)
+    + We recommend latest Blender 3 release for up-to-date Alembic format support
 + FBX export to Unity
     + Exports mesh in default T-Pose with flat hands
     + Imported FBX will show up in Unity inspector without rotations and without scaling
@@ -46,6 +52,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + The add-on GUI (gender, texture, hand pose) does not reflect the state of the currently selected SMPL-X model if you work with multiple models in one scene.
 + To maintain editor responsiveness the add-on does not automatically recalculate joint locations when you change the shape manually via Blender shape keys. Use the `Update Joint Locations` button to update the joint locations after manual shape key change.
 + To maintain editor responsiveness, the add-on does not automatically recalculate the corrective pose shape keys when you change the armature pose. Use the `Update Pose Shapes` button to update the joint locations after pose changes.
++ Unity FBX export is currently including an unnecessary duplicate of the animation track. It's possible to delete the duplicate in Unity Animation Inspector after import.
 
 ## License
 + Generated body mesh data using this add-on:
@@ -74,7 +81,12 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20210629: Added option to create animated body from AMASS SMPL-X animation file
 + 20220117: Added option to set height+weight for neutral SMPL-X model
 + 20220218: Added option to set animation target framerate. Lower values will speed up import time.
-+ 20220310: Added Alembic export button. Added option to set animation format orientation. Use 30fps as new default target framerate. Adjust Blender Timeline end frame when adding first animation.
++ 20220311:
+  + Fix pelvis location offset when importing AMASS animations
+  + Added option to set animation import format (AMASS, SMPL-X)
+  + Adjust Blender Timeline end frame when adding first animation
+  + Use 30fps as new default target framerate
+  + Added Alembic export button
 
 ## Contact
 + smplx-blender@tue.mpg.de
