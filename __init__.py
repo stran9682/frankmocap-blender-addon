@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 14),
+    "version": (2022, 3, 15),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1008,7 +1008,6 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             if (index % 100) == 0:
                 print(f"  {index}/{num_keyframes}")
             current_frame = index + 1
-            context.scene.frame_set(current_frame)
             current_pose = poses[frame].reshape(-1, 3)
             current_trans = trans[frame]
             for index, bone_name in enumerate(SMPLX_JOINT_NAMES):

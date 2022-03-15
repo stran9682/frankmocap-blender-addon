@@ -87,6 +87,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Adjust Blender Timeline end frame when adding first animation
   + Use 30fps as new default target framerate
   + Added Alembic export button
++ 20220315:
+  + Speed up animation import time
 
 ## Contact
 + smplx-blender@tue.mpg.de
