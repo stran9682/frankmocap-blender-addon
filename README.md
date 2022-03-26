@@ -52,7 +52,6 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + The add-on GUI (gender, texture, hand pose) does not reflect the state of the currently selected SMPL-X model if you work with multiple models in one scene.
 + To maintain editor responsiveness the add-on does not automatically recalculate joint locations when you change the shape manually via Blender shape keys. Use the `Update Joint Locations` button to update the joint locations after manual shape key change.
 + To maintain editor responsiveness, the add-on does not automatically recalculate the corrective pose shape keys when you change the armature pose. Use the `Update Pose Shapes` button to update the joint locations after pose changes.
-+ Unity FBX export is currently including an unnecessary duplicate of the animation track. It's possible to delete the duplicate in Unity Animation Inspector after import.
 
 ## License
 + Generated body mesh data using this add-on:
@@ -88,8 +87,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Added Alembic export button
 + 20220315:
   + Speed up animation import time
-+ 20220325:
++ 20220328:
   + Added Unreal FBX export. Shape keys bake options can now be found in export dialog settings.
+  + Fix unwanted duplicated animation sequence in FBX export
 
 ## Contact
 + smplx-blender@tue.mpg.de

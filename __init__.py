@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 25),
+    "version": (2022, 3, 26),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1208,7 +1208,9 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
             bpy.data.objects[target_armature_name].name = "SMPLX-temp-armature"
         armature.name = target_armature_name
 
-        bpy.ops.export_scene.fbx(filepath=self.filepath, use_selection=True, apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False)
+        # Default FBX export settings export all animations. Since we duplicated the armature we have a copy of the animation and the original animation.
+        # We avoid export of both by only exporting the active animation for the armature (bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False).
+        bpy.ops.export_scene.fbx(filepath=self.filepath, use_selection=True, apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False, bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False)
 
         print("Exported: " + self.filepath)
 
