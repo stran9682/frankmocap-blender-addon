@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 15),
+    "version": (2022, 3, 25),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -129,12 +129,6 @@ class PG_SMPLXProperties(PropertyGroup):
         name = "",
         description = "SMPL-X hand pose",
         items = [ ("relaxed", "Relaxed", ""), ("flat", "Flat", "") ]
-    )
-
-    smplx_export_setting_shape_keys: EnumProperty(
-        name = "",
-        description = "Blend shape export settings",
-        items = [ ("SHAPE_POSE", "All: Shape + Posecorrectives", "Export shape keys for body shape and pose correctives"), ("SHAPE", "Reduced: Shape space only", "Export only shape keys for body shape"), ("NONE", "None: Apply shape space", "Do not export any shape keys, shape keys for body shape will be baked into mesh") ],
     )
 
     smplx_height: FloatProperty(name="Target Height [m]", default=1.70, min=1.4, max=2.2)
@@ -1064,14 +1058,29 @@ class SMPLXExportAlembic(bpy.types.Operator, ExportHelper):
 
         return {'FINISHED'}
 
-class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
-    bl_idname = "object.smplx_export_unity_fbx"
-    bl_label = "Export Unity FBX"
-    bl_description = ("Export skinned mesh to Unity in FBX format")
+class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
+    bl_idname = "object.smplx_export_fbx"
+    bl_label = "Export FBX"
+    bl_description = ("Export skinned mesh in FBX format")
     bl_options = {'REGISTER', 'UNDO'}
 
     # ExportHelper mixin class uses this
     filename_ext = ".fbx"
+
+    export_shape_keys: EnumProperty(
+        name = "Blend Shapes",
+        description = "Blend shape export settings",
+        items = [ ("SHAPE_POSE", "All: Shape + Posecorrectives", "Export shape keys for body shape and pose correctives"), ("SHAPE", "Reduced: Shape space only", "Export only shape keys for body shape"), ("NONE", "None: Apply shape space", "Do not export any shape keys, shape keys for body shape will be baked into mesh") ],
+    )
+
+
+    target_format: EnumProperty(
+        name="Format",
+        items=(
+            ("UNITY", "Unity", ""),
+            ("UNREAL", "Unreal", ""),
+        ),
+    )
 
     @classmethod
     def poll(cls, context):
@@ -1083,7 +1092,6 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
     def execute(self, context):
 
         obj = bpy.context.object
-        export_shape_keys = context.window_manager.smplx_tool.smplx_export_setting_shape_keys
 
         armature_original = obj.parent
         skinned_mesh_original = obj
@@ -1115,7 +1123,7 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
         # Reset pose
         bpy.ops.object.smplx_reset_pose('EXEC_DEFAULT')
 
-        if export_shape_keys != 'SHAPE_POSE':
+        if self.export_shape_keys != 'SHAPE_POSE':
             # Remove pose corrective shape keys
             print("Removing pose corrective shape keys")
             num_shape_keys = len(skinned_mesh.data.shape_keys.key_blocks.keys())
@@ -1130,7 +1138,7 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
                     else:
                         current_shape_key_index = current_shape_key_index + 1        
 
-        if export_shape_keys == 'NONE':
+        if self.export_shape_keys == 'NONE':
             # Bake and remove shape keys
             print("Baking shape and removing shape keys for shape")
 
@@ -1150,15 +1158,33 @@ class SMPLXExportUnityFBX(bpy.types.Operator, ExportHelper):
         skinned_mesh.select_set(True)
         skinned_mesh.rotation_euler = (radians(-90), 0, 0)
         bpy.context.view_layer.objects.active = skinned_mesh
-        bpy.ops.object.transform_apply(rotation = True)
+        bpy.ops.object.transform_apply(location = False, rotation = True, scale = False)
         skinned_mesh.rotation_euler = (radians(90), 0, 0)
         skinned_mesh.select_set(False)
 
         armature.select_set(True)
         armature.rotation_euler = (radians(-90), 0, 0)
         bpy.context.view_layer.objects.active = armature
-        bpy.ops.object.transform_apply(rotation = True)
+        bpy.ops.object.transform_apply(location = False, rotation = True, scale = False)
         armature.rotation_euler = (radians(90), 0, 0)
+
+        if self.target_format == "UNREAL":
+            # Scale armature by 100 so that Unreal FBX importer can be used with default scale 1.
+            # This ensures that attached objects to imported skeleton in Unreal will keep scale 1.
+
+            armature.scale = (100, 100, 100)
+
+            # Scale keyframed pelvis locations if available
+            if armature.animation_data is not None:
+                action = armature.animation_data.action
+                for fcurve in action.fcurves:
+                    if fcurve.data_path.endswith("location"):
+                        for keyframe_point in fcurve.keyframe_points:
+                            keyframe_point.co[1] = keyframe_point.co[1] * 100
+                            keyframe_point.handle_left[1] = keyframe_point.handle_left[1] * 100
+                            keyframe_point.handle_right[1] = keyframe_point.handle_right[1] * 100
+
+            bpy.ops.object.transform_apply(location = False, rotation = False, scale = True)
 
         # Select armature and skinned mesh for export
         skinned_mesh.select_set(True)
@@ -1307,12 +1333,7 @@ class SMPLX_PT_Export(bpy.types.Panel):
         col.operator("object.smplx_export_alembic")
         col.separator()
 
-        col.label(text="Shape Keys (Blend Shapes):")
-        col.prop(context.window_manager.smplx_tool, "smplx_export_setting_shape_keys")
-        col.separator()
-        col.separator()
-
-        col.operator("object.smplx_export_unity_fbx")
+        col.operator("object.smplx_export_fbx")
         col.separator()
 
 #        export_button = col.operator("export_scene.obj", text="Export OBJ [m]", icon='EXPORT')
@@ -1347,7 +1368,7 @@ classes = [
     SMPLXResetPose,
     SMPLXAddAnimation,
     SMPLXExportAlembic,
-    SMPLXExportUnityFBX,
+    SMPLXExportFBX,
     SMPLX_PT_Model,
     SMPLX_PT_Shape,
     SMPLX_PT_Pose,

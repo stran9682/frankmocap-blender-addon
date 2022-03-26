@@ -28,9 +28,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
         + Unreal Engine
             + Alembic Import settings: Geometry Cache, Scale (100, -100, 100), Rotation (90, 0, 0)
     + We recommend latest Blender 3 release for up-to-date Alembic format support
-+ FBX export to Unity
-    + Exports mesh in default T-Pose with flat hands
-    + Imported FBX will show up in Unity inspector without rotations and without scaling
++ FBX export
+    + Export to Unity or Unreal Engine
+        + Imported FBX will import in Unity/Unreal without rotations and without scaling
     + Shape key export options: 
         + Body shape and posecorrectives
         + Body shape without posecorrectives
@@ -73,7 +73,6 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 + Lea Müller and Vassilis Choutas (measurements-to-betas regressor)
 
-
 ## Changelog
 + 20210505: Initial release
 + 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
@@ -89,6 +88,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Added Alembic export button
 + 20220315:
   + Speed up animation import time
++ 20220325:
+  + Added Unreal FBX export. Shape keys bake options can now be found in export dialog settings.
 
 ## Contact
 + smplx-blender@tue.mpg.de
