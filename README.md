@@ -87,9 +87,11 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Added Alembic export button
 + 20220315:
   + Speed up animation import time
-+ 20220328:
++ 20220326:
   + Added Unreal FBX export. Shape keys bake options can now be found in export dialog settings.
   + Fix unwanted duplicated animation sequence in FBX export
++ 20220613:
+  + Add option to import animation onto grounded rest pose armature
 
 ## Contact
 + smplx-blender@tue.mpg.de

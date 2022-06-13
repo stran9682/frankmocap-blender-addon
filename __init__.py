@@ -19,7 +19,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 3, 26),
+    "version": (2022, 4, 12),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -445,8 +445,8 @@ class SMPLXSnapGroundPlane(bpy.types.Operator):
 
         obj = bpy.context.object
         if obj.type == 'ARMATURE':
-                    armature = obj
-                    obj = bpy.context.object.children[0]
+            armature = obj
+            obj = bpy.context.object.children[0]
         else:
             armature = obj.parent
 
@@ -893,7 +893,7 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
 class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     bl_idname = "object.smplx_add_animation"
     bl_label = "Add Animation"
-    bl_description = ("Load AMASS (SMPL-X) animation and create animated SMPL-X body")
+    bl_description = ("Load AMASS/SMPL-X animation and create animated SMPL-X body")
     bl_options = {'REGISTER', 'UNDO'}
 
     filter_glob: StringProperty(
@@ -906,6 +906,14 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         items=(
             ("AMASS", "AMASS", ""),
             ("SMPL-X", "SMPL-X", ""),
+        ),
+    )
+
+    rest_position: EnumProperty(
+        name="Rest position",
+        items=(
+            ("SMPL-X", "SMPL-X", "Use default SMPL-X rest position (feet below the floor)"),
+            ("GROUNDED", "Grounded", "Use feet-on-floor rest position"),
         ),
     )
 
@@ -981,6 +989,26 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
 
         bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
+        height_offset = 0
+        if self.rest_position == "GROUNDED":
+            bpy.ops.object.smplx_snap_ground_plane('EXEC_DEFAULT')
+            height_offset = armature.location[2]
+
+            # Apply location offsets to armature and skinned mesh
+            bpy.context.view_layer.objects.active = armature
+            armature.select_set(True)
+            obj.select_set(True)
+            bpy.ops.object.transform_apply(location = True, rotation=False, scale=False) # apply to selected objects
+            armature.select_set(False)
+
+            # Fix root bone location
+            bpy.ops.object.mode_set(mode='EDIT')
+            bone = armature.data.edit_bones["root"]
+            bone.head = (0.0, 0.0, 0.0)
+            bone.tail = (0.0, 0.0, 0.1)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.context.view_layer.objects.active = obj
+
         # Keyframe poses
         step_size = int(mocap_framerate / target_framerate)
 
@@ -1007,6 +1035,10 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             for index, bone_name in enumerate(SMPLX_JOINT_NAMES):
                 if bone_name == "pelvis":
                     # Keyframe pelvis location
+
+                    if self.rest_position == "GROUNDED":
+                        current_trans[1] = current_trans[1] - height_offset # SMPL-X local joint coordinates are Y-Up
+
                     armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
                     armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
 
