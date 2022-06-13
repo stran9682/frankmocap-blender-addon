@@ -92,6 +92,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Fix unwanted duplicated animation sequence in FBX export
 + 20220613:
   + Add option to import animation onto grounded rest pose armature
+  + Disable animation keyframe simplification for FBX export so that FBX animations match Alembic animations
 
 ## Contact
 + smplx-blender@tue.mpg.de
