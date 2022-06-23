@@ -1,3 +1,5 @@
+# Copyright 2021, 2022 Perceiving Systems, Max Planck Institute for Intelligent Systems
+
 # ##### BEGIN GPL LICENSE BLOCK #####
 #
 #  This program is free software; you can redistribute it and/or
@@ -19,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 6, 13),
+    "version": (2022, 6, 23),
     "blender": (2, 80, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -40,6 +42,7 @@ import pickle
 
 # SMPL-X globals
 SMPLX_MODELFILE = "smplx_model_20210421.blend"
+SMPLX_MODELFILE_300 = "smplx_model_300_20220615.blend"
 
 SMPLX_JOINT_NAMES = [
     'pelvis','left_hip','right_hip','spine1','left_knee','right_knee','spine2','left_ankle','right_ankle','spine3', 'left_foot','right_foot','neck','left_collar','right_collar','head','left_shoulder','right_shoulder','left_elbow', 'right_elbow','left_wrist','right_wrist',
@@ -157,7 +160,15 @@ class SMPLXAddGender(bpy.types.Operator):
         print("Adding gender: " + gender)
 
         path = os.path.dirname(os.path.realpath(__file__))
-        objects_path = os.path.join(path, "data", SMPLX_MODELFILE, "Object")
+
+        # Use 300 shape model by default if available
+        model_path = os.path.join(path, "data", SMPLX_MODELFILE_300)
+        if os.path.exists(model_path):
+            model_file = SMPLX_MODELFILE_300
+        else:
+            model_file = SMPLX_MODELFILE
+
+        objects_path = os.path.join(path, "data", model_file, "Object")
         object_name = "SMPLX-mesh-" + gender
 
         bpy.ops.wm.append(filename=object_name, directory=str(objects_path))
@@ -473,9 +484,9 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     bl_description = ("Update joint locations after shape/expression changes")
     bl_options = {'REGISTER', 'UNDO'}
 
-    j_regressor_female = None
-    j_regressor_male = None
-    j_regressor_neutral = None
+    j_regressor_female = { 10: None, 300: None }
+    j_regressor_male = { 10: None, 300: None }
+    j_regressor_neutral = { 10: None, 300: None }
 
     @classmethod
     def poll(cls, context):
@@ -484,44 +495,50 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
             return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
         except: return False
 
+    def load_regressor(self, gender, betas):
+        path = os.path.dirname(os.path.realpath(__file__))
+        if betas == 10:
+            suffix = ""
+        elif betas == 300:
+            suffix = "_300"
+        else:
+            print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas}]")
+            return (None, None)
+
+        regressor_path = os.path.join(path, "data", f"smplx_betas_to_joints_{gender}{suffix}.json")
+        with open(regressor_path) as f:
+            data = json.load(f)
+            return (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
+
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
-
-        if self.j_regressor_female is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_betas_to_joints_female.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.j_regressor_female = (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
-    
-        if self.j_regressor_male is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_betas_to_joints_male.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.j_regressor_male = (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
-
-        if self.j_regressor_neutral is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_betas_to_joints_neutral.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.j_regressor_neutral = (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
-
-        if "female" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_female
-        elif "male" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_male
-        else:
-            (betas_to_joints, template_j) = self.j_regressor_neutral
 
         # Get beta shapes
         betas = []
         for key_block in obj.data.shape_keys.key_blocks:
             if key_block.name.startswith("Shape"):
                 betas.append(key_block.value)
+        num_betas = len(betas)
         betas = np.array(betas)
+
+        # Cache regressor files on first call
+        for target_betas in [10, 300]:
+            if self.j_regressor_female[target_betas] is None:
+                self.j_regressor_female[target_betas] = self.load_regressor("female", target_betas)
+
+            if self.j_regressor_male[target_betas] is None:
+                self.j_regressor_male[target_betas] = self.load_regressor("male", target_betas)
+
+            if self.j_regressor_neutral[target_betas] is None:
+                self.j_regressor_neutral[target_betas] = self.load_regressor("neutral", target_betas)
+
+        if "female" in obj.name:
+            (betas_to_joints, template_j) = self.j_regressor_female[num_betas]
+        elif "male" in obj.name:
+            (betas_to_joints, template_j) = self.j_regressor_male[num_betas]
+        else:
+            (betas_to_joints, template_j) = self.j_regressor_neutral[num_betas]
 
         joint_locations = betas_to_joints @ betas + template_j
 
