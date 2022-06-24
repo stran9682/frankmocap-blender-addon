@@ -362,9 +362,16 @@ class SMPLXRandomShape(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
+        randomized_betas = 0
         for key_block in obj.data.shape_keys.key_blocks:
             if key_block.name.startswith("Shape"):
-                key_block.value = np.random.normal(0.0, 1.0)
+                beta = np.random.normal(0.0, 1.0)
+                beta = np.clip(beta, -1.0, 1.0)
+                key_block.value = beta
+
+                randomized_betas += 1
+                if randomized_betas >= 16:
+                    break
 
         bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
