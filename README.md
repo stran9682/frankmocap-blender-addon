@@ -2,9 +2,9 @@
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned meshes to your current Blender scene. Each imported SMPL-X mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression and pose correctives.
 
-+ Requirements: Blender 2.80+, tested with 3.1.0
++ Requirements: Blender 3.0+, tested with 3.4.1
 + Additional dependencies: None
-+ Used SMPL-X model: SMPL-X v1.1 with 10 shape components, 10 expression components
++ Used SMPL-X model: SMPL-X v1.1 with 10 or 300 shape components, 10 expression components
 
 # Features
 + Add female/male/neutral specific SMPL-X mesh to current scene
@@ -55,8 +55,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 ## License
 + Generated body mesh data using this add-on:
-    + Licensed under SMPL-X Model License
-        + https://smpl-x.is.tue.mpg.de/modellicense
+    + Licensed under SMPL-X Model or Body License, depending on use case
+        + https://smpl-x.is.tue.mpg.de/modellicense.html
+        + https://smpl-x.is.tue.mpg.de/bodylicense.html
 
 + See LICENSE.md for further license information including commercial licensing
 
@@ -94,6 +95,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add option to import animation onto grounded rest pose armature
   + Disable animation keyframe simplification for FBX export so that FBX animations match Alembic animations
   + Add support for 300 beta shape model
++ 20230120:
+  + Add option to use relaxed hand reference frame when adding animation from file
 
 ## Contact
 + smplx-blender@tue.mpg.de

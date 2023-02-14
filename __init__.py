@@ -21,8 +21,8 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2022, 6, 23),
-    "blender": (2, 80, 0),
+    "version": (2023, 1, 20),
+    "blender": (3, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
     "wiki_url": "https://smpl-x.is.tue.mpg.de/",
@@ -934,10 +934,18 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     )
 
     rest_position: EnumProperty(
-        name="Rest position",
+        name="Body rest position",
         items=(
             ("SMPL-X", "SMPL-X", "Use default SMPL-X rest position (feet below the floor)"),
             ("GROUNDED", "Grounded", "Use feet-on-floor rest position"),
+        ),
+    )
+
+    hand_reference: EnumProperty(
+        name="Hand pose reference",
+        items=(
+            ("FLAT", "Flat", "Use flat hand as hand pose reference"),
+            ("RELAXED", "Relaxed", "Use relaxed hand as hand pose reference"),
         ),
     )
 
@@ -955,6 +963,8 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         max = 120
     )
 
+    hand_pose_relaxed = None
+
     @classmethod
     def poll(cls, context):
         try:
@@ -965,6 +975,15 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     def execute(self, context):
 
         target_framerate = self.target_framerate
+
+        if self.hand_reference == "RELAXED":
+            if self.hand_pose_relaxed is None:
+                path = os.path.dirname(os.path.realpath(__file__))
+                data_path = os.path.join(path, "data", "smplx_handposes.npz")
+                with np.load(data_path, allow_pickle=True) as data:
+                    hand_poses = data["hand_poses"].item()
+                    (left_hand_pose, right_hand_pose) = hand_poses["relaxed"]
+                    self.hand_pose_relaxed = np.concatenate( (left_hand_pose, right_hand_pose) ).reshape(-1, 3)
 
         # Load .npz file
         print("Loading: " + self.filepath)
@@ -1056,10 +1075,9 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             current_frame = index + 1
             current_pose = poses[frame].reshape(-1, 3)
             current_trans = trans[frame]
-            for index, bone_name in enumerate(SMPLX_JOINT_NAMES):
+            for bone_index, bone_name in enumerate(SMPLX_JOINT_NAMES):
                 if bone_name == "pelvis":
                     # Keyframe pelvis location
-
                     if self.rest_position == "GROUNDED":
                         current_trans[1] = current_trans[1] - height_offset # SMPL-X local joint coordinates are Y-Up
 
@@ -1067,8 +1085,22 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                     armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
 
                 # Keyframe bone rotation
-                pose_rodrigues = current_pose[index]
-                set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
+                pose_rodrigues = current_pose[bone_index]
+
+                if self.hand_reference == "FLAT":
+                    set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
+                else:
+                    # Relaxed hand pose uses different coordinate system for fingers
+                    finger_names = ["index", "middle", "pinky", "ring", "thumb"]
+                    if not any([x in bone_name for x in finger_names]):
+                        set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
+                    else:
+                        # Finger rotations are relative to relaxed hand pose
+                        hand_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
+                        relaxed_hand_joint_index = bone_index - hand_start_index
+                        pose_relaxed_rodrigues = self.hand_pose_relaxed[relaxed_hand_joint_index]
+                        set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)
+
                 armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
 
             if self.keyframe_corrective_pose_weights:
