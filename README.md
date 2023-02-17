@@ -4,7 +4,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 + Requirements: Blender 3.0+, tested with 3.4.1
 + Additional dependencies: None
-+ Used SMPL-X model: SMPL-X v1.1 with 10 or 300 shape components, 10 expression components
++ Used SMPL-X models:
+  + SMPL-X v1.1
+  + SMPL-X locked head (no head bun)
+  + 300 shape components, 10 expression components
 
 # Features
 + Add female/male/neutral specific SMPL-X mesh to current scene
@@ -75,21 +78,21 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 ## Changelog
 + 20210505: Initial release
-+ 20210525: Replaced vertices-to-joints regressor with beta-to-joints regressor. Added rainbow texture (CC BY-NC 4.0).
-+ 20210611: Added option to set shape from height and weight values for female and male models
-+ 20210629: Added option to create animated body from AMASS SMPL-X animation file
-+ 20220117: Added option to set height+weight for neutral SMPL-X model
-+ 20220218: Added option to set animation target framerate. Lower values will speed up import time.
++ 20210525: Replace vertices-to-joints regressor with beta-to-joints regressor. Add rainbow texture (CC BY-NC 4.0).
++ 20210611: Add option to set shape from height and weight values for female and male models
++ 20210629: Add option to create animated body from AMASS SMPL-X animation file
++ 20220117: Add option to set height+weight for neutral SMPL-X model
++ 20220218: Add option to set animation target framerate. Lower values will speed up import time.
 + 20220311:
   + Fix pelvis location offset when importing AMASS animations
-  + Added option to set animation import format (AMASS, SMPL-X)
+  + Add option to set animation import format (AMASS, SMPL-X)
   + Adjust Blender Timeline end frame when adding first animation
   + Use 30fps as new default target framerate
-  + Added Alembic export button
+  + Add Alembic export button
 + 20220315:
   + Speed up animation import time
 + 20220326:
-  + Added Unreal FBX export. Shape keys bake options can now be found in export dialog settings.
+  + Add Unreal FBX export. Shape keys bake options can now be found in export dialog settings.
   + Fix unwanted duplicated animation sequence in FBX export
 + 20220623:
   + Add option to import animation onto grounded rest pose armature
@@ -97,6 +100,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add support for 300 beta shape model
 + 20230120:
   + Add option to use relaxed hand reference frame when adding animation from file
++ 20230217:
+  + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head. Setting shape from height and weight is currently only supported for v1.1 model.
 
 ## Contact
 + smplx-blender@tue.mpg.de

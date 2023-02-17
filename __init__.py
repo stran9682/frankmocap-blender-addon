@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2023, 1, 20),
+    "version": (2023, 2, 17),
     "blender": (3, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -43,7 +43,7 @@ import pickle
 # SMPL-X globals
 SMPLX_MODELFILE = "smplx_model_20210421.blend"
 SMPLX_MODELFILE_300 = "smplx_model_300_20220615.blend"
-
+SMPLX_MODELFILE_LH_300 = "smplx_model_lh_300_20230214.blend"
 SMPLX_JOINT_NAMES = [
     'pelvis','left_hip','right_hip','spine1','left_knee','right_knee','spine2','left_ankle','right_ankle','spine3', 'left_foot','right_foot','neck','left_collar','right_collar','head','left_shoulder','right_shoulder','left_elbow', 'right_elbow','left_wrist','right_wrist',
     'jaw','left_eye_smplhf','right_eye_smplhf','left_index1','left_index2','left_index3','left_middle1','left_middle2','left_middle3','left_pinky1','left_pinky2','left_pinky3','left_ring1','left_ring2','left_ring3','left_thumb1','left_thumb2','left_thumb3','right_index1','right_index2','right_index3','right_middle1','right_middle2','right_middle3','right_pinky1','right_pinky2','right_pinky3','right_ring1','right_ring2','right_ring3','right_thumb1','right_thumb2','right_thumb3'
@@ -109,10 +109,16 @@ def set_pose_from_rodrigues(armature, bone_name, rodrigues, rodrigues_reference=
 # Property groups for UI
 class PG_SMPLXProperties(PropertyGroup):
 
+    smplx_version: EnumProperty(
+        name = "Version",
+        description = "SMPL-X version",
+        items = [ ("default", "Default (v1.1)", ""), ("locked_head", "Locked Head", "")]
+    )
+
     smplx_gender: EnumProperty(
         name = "Model",
         description = "SMPL-X model",
-        items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "") ]
+        items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
     )
 
     smplx_texture: EnumProperty(
@@ -161,12 +167,15 @@ class SMPLXAddGender(bpy.types.Operator):
 
         path = os.path.dirname(os.path.realpath(__file__))
 
-        # Use 300 shape model by default if available
-        model_path = os.path.join(path, "data", SMPLX_MODELFILE_300)
-        if os.path.exists(model_path):
-            model_file = SMPLX_MODELFILE_300
+        if context.window_manager.smplx_tool.smplx_version == "default":
+            # Use 300 shape model if available
+            model_path = os.path.join(path, "data", SMPLX_MODELFILE_300)
+            if os.path.exists(model_path):
+                model_file = SMPLX_MODELFILE_300
+            else:
+                model_file = SMPLX_MODELFILE
         else:
-            model_file = SMPLX_MODELFILE
+            model_file = SMPLX_MODELFILE_LH_300
 
         objects_path = os.path.join(path, "data", model_file, "Object")
         object_name = "SMPLX-mesh-" + gender
@@ -491,9 +500,9 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     bl_description = ("Update joint locations after shape/expression changes")
     bl_options = {'REGISTER', 'UNDO'}
 
-    j_regressor_female = { 10: None, 300: None }
-    j_regressor_male = { 10: None, 300: None }
-    j_regressor_neutral = { 10: None, 300: None }
+    j_regressor_female = { "10": None, "300": None, "300_lh": None }
+    j_regressor_male = { "10": None, "300": None, "300_lh": None }
+    j_regressor_neutral = { "10": None, "300": None, "300_lh": None }
 
     @classmethod
     def poll(cls, context):
@@ -504,15 +513,19 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
 
     def load_regressor(self, gender, betas):
         path = os.path.dirname(os.path.realpath(__file__))
-        if betas == 10:
+        prefix = ""
+        if betas == "10":
             suffix = ""
-        elif betas == 300:
+        elif betas == "300":
             suffix = "_300"
+        elif betas == "300_lh":
+            suffix = "_300"
+            prefix = "lh_"
         else:
             print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas}]")
             return (None, None)
 
-        regressor_path = os.path.join(path, "data", f"smplx_betas_to_joints_{gender}{suffix}.json")
+        regressor_path = os.path.join(path, "data", f"smplx_betas_to_joints_{prefix}{gender}{suffix}.json")
         with open(regressor_path) as f:
             data = json.load(f)
             return (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
@@ -530,7 +543,7 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         betas = np.array(betas)
 
         # Cache regressor files on first call
-        for target_betas in [10, 300]:
+        for target_betas in ["10", "300", "300_lh"]:
             if self.j_regressor_female[target_betas] is None:
                 self.j_regressor_female[target_betas] = self.load_regressor("female", target_betas)
 
@@ -540,12 +553,16 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
             if self.j_regressor_neutral[target_betas] is None:
                 self.j_regressor_neutral[target_betas] = self.load_regressor("neutral", target_betas)
 
+        key = f"{num_betas}"
+        if "-lh" in obj.name:
+            key += "_lh"
+
         if "female" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_female[num_betas]
+            (betas_to_joints, template_j) = self.j_regressor_female[key]
         elif "male" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_male[num_betas]
+            (betas_to_joints, template_j) = self.j_regressor_male[key]
         else:
-            (betas_to_joints, template_j) = self.j_regressor_neutral[num_betas]
+            (betas_to_joints, template_j) = self.j_regressor_neutral[key]
 
         joint_locations = betas_to_joints @ betas + template_j
 
@@ -1333,6 +1350,7 @@ class SMPLX_PT_Model(bpy.types.Panel):
         col = layout.column(align=True)
         
         row = col.row(align=True)
+        col.prop(context.window_manager.smplx_tool, "smplx_version")
         col.prop(context.window_manager.smplx_tool, "smplx_gender")
         col.operator("scene.smplx_add_gender", text="Add")
 
