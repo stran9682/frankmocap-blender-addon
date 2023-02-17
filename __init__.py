@@ -112,7 +112,7 @@ class PG_SMPLXProperties(PropertyGroup):
     smplx_version: EnumProperty(
         name = "Version",
         description = "SMPL-X version",
-        items = [ ("default", "Default (v1.1)", ""), ("locked_head", "Locked Head", "")]
+        items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
     )
 
     smplx_gender: EnumProperty(
@@ -167,15 +167,16 @@ class SMPLXAddGender(bpy.types.Operator):
 
         path = os.path.dirname(os.path.realpath(__file__))
 
-        if context.window_manager.smplx_tool.smplx_version == "default":
+        if context.window_manager.smplx_tool.smplx_version == "locked_head":
+            model_file = SMPLX_MODELFILE_LH_300
+        else:
+            # v1.1
             # Use 300 shape model if available
             model_path = os.path.join(path, "data", SMPLX_MODELFILE_300)
             if os.path.exists(model_path):
                 model_file = SMPLX_MODELFILE_300
             else:
                 model_file = SMPLX_MODELFILE
-        else:
-            model_file = SMPLX_MODELFILE_LH_300
 
         objects_path = os.path.join(path, "data", model_file, "Object")
         object_name = "SMPLX-mesh-" + gender
