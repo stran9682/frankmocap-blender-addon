@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2023, 2, 17),
+    "version": (2023, 2, 27),
     "blender": (3, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -41,9 +41,11 @@ import os
 import pickle
 
 # SMPL-X globals
+USE_SMPLX_2020 = False
 SMPLX_MODELFILE = "smplx_model_20210421.blend"
 SMPLX_MODELFILE_300 = "smplx_model_300_20220615.blend"
-SMPLX_MODELFILE_LH_300 = "smplx_model_lh_300_20230214.blend"
+SMPLX_MODELFILE_LH = "smplx_model_lh_300_20230214.blend"
+SMPLX_MODELFILE_2020 = "smplx_model_2020_300_100_20230227.blend"
 SMPLX_JOINT_NAMES = [
     'pelvis','left_hip','right_hip','spine1','left_knee','right_knee','spine2','left_ankle','right_ankle','spine3', 'left_foot','right_foot','neck','left_collar','right_collar','head','left_shoulder','right_shoulder','left_elbow', 'right_elbow','left_wrist','right_wrist',
     'jaw','left_eye_smplhf','right_eye_smplhf','left_index1','left_index2','left_index3','left_middle1','left_middle2','left_middle3','left_pinky1','left_pinky2','left_pinky3','left_ring1','left_ring2','left_ring3','left_thumb1','left_thumb2','left_thumb3','right_index1','right_index2','right_index3','right_middle1','right_middle2','right_middle3','right_pinky1','right_pinky2','right_pinky3','right_ring1','right_ring2','right_ring3','right_thumb1','right_thumb2','right_thumb3'
@@ -109,17 +111,30 @@ def set_pose_from_rodrigues(armature, bone_name, rodrigues, rodrigues_reference=
 # Property groups for UI
 class PG_SMPLXProperties(PropertyGroup):
 
-    smplx_version: EnumProperty(
-        name = "Version",
-        description = "SMPL-X version",
-        items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
-    )
+    if USE_SMPLX_2020:
+        smplx_version: EnumProperty(
+            name = "Version",
+            description = "SMPL-X version",
+            items = [ ("2020", "2020", "SMPL-X with FLAME 2020 expression blendshapes")]
+        )
 
-    smplx_gender: EnumProperty(
-        name = "Model",
-        description = "SMPL-X model",
-        items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
-    )
+        smplx_gender: EnumProperty(
+            name = "Model",
+            description = "SMPL-X model",
+            items = [ ("neutral", "Neutral", "")]
+        )
+    else:
+        smplx_version: EnumProperty(
+            name = "Version",
+            description = "SMPL-X version",
+            items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
+        )
+
+        smplx_gender: EnumProperty(
+            name = "Model",
+            description = "SMPL-X model",
+            items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
+        )
 
     smplx_texture: EnumProperty(
         name = "",
@@ -168,7 +183,9 @@ class SMPLXAddGender(bpy.types.Operator):
         path = os.path.dirname(os.path.realpath(__file__))
 
         if context.window_manager.smplx_tool.smplx_version == "locked_head":
-            model_file = SMPLX_MODELFILE_LH_300
+            model_file = SMPLX_MODELFILE_LH
+        elif context.window_manager.smplx_tool.smplx_version == "2020":
+            model_file = SMPLX_MODELFILE_2020
         else:
             # v1.1
             # Use 300 shape model if available
