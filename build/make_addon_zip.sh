@@ -21,14 +21,14 @@ fi
 
 if [ -n "$BUILD_SMPLX_300" ]; then
   # Build 300 shape model add-on
-  archivename=./smplx_blender_addon_300_$filedate.zip
+  archivename=./smplx_blender_addon_lh_$filedate.zip
   echo "Generating $archivename"
   if [ -f $archivename ]; then
     echo "Removing old add-on: $archivename"
     rm $archivename
   fi
   # --compression-method store
-  zip $archivename smplx_blender_addon/*.py smplx_blender_addon/*.md smplx_blender_addon/data/*.npz smplx_blender_addon/data/*.json smplx_blender_addon/data/*.png smplx_blender_addon/data/smplx_model_300_20220615.blend smplx_blender_addon/data/smplx_model_lh_300_20230214.blend
+  zip $archivename smplx_blender_addon/*.py smplx_blender_addon/*.md smplx_blender_addon/data/*.npz smplx_blender_addon/data/*.json smplx_blender_addon/data/*.png smplx_blender_addon/data/smplx_model_20230228.blend smplx_blender_addon/data/smplx_model_lh_20230228.blend
 fi
 
 if [ -n "$BUILD_SMPLX_2020" ]; then
