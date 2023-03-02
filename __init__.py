@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2023, 2, 28),
+    "version": (2023, 3, 2),
     "blender": (3, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -43,8 +43,8 @@ import pickle
 # SMPL-X globals
 USE_SMPLX_2020 = False
 SMPLX_MODELFILE = "smplx_model_20210421.blend"
-SMPLX_MODELFILE_300 = "smplx_model_20230228.blend"
-SMPLX_MODELFILE_LH = "smplx_model_lh_20230228.blend"
+SMPLX_MODELFILE_300 = "smplx_model_20230302.blend"
+SMPLX_MODELFILE_LH = "smplx_model_lh_20230302.blend"
 SMPLX_MODELFILE_2020 = "smplx_model_2020_20230227.blend"
 SMPLX_JOINT_NAMES = [
     'pelvis','left_hip','right_hip','spine1','left_knee','right_knee','spine2','left_ankle','right_ankle','spine3', 'left_foot','right_foot','neck','left_collar','right_collar','head','left_shoulder','right_shoulder','left_elbow', 'right_elbow','left_wrist','right_wrist',
@@ -300,9 +300,10 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
     bl_description = ("Calculate and set shape parameters for specified measurements")
     bl_options = {'REGISTER', 'UNDO'}
 
-    betas_regressor_female = None
-    betas_regressor_male = None
-    betas_regressor_neutral = None
+    betas_regressor = {}
+    betas_regressor["female"] = None
+    betas_regressor["male"] = None
+    betas_regressor["neutral"] = None
 
     @classmethod
     def poll(cls, context):
@@ -315,36 +316,16 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        if self.betas_regressor_female is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_female.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.betas_regressor_female = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+        for gender in ["female", "male", "neutral"]:
+            if self.betas_regressor[gender] is None:
+                path = os.path.dirname(os.path.realpath(__file__))
+                regressor_path = os.path.join(path, "data", f"smplx_measurements_to_betas_{gender}.json")
+                with open(regressor_path) as f:
+                    data = json.load(f)
+                    self.betas_regressor[gender] = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
 
-        if self.betas_regressor_male is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_male.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.betas_regressor_male = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
-
-        if self.betas_regressor_neutral is None:
-            path = os.path.dirname(os.path.realpath(__file__))
-            regressor_path = os.path.join(path, "data", "smplx_measurements_to_betas_neutral.json")
-            with open(regressor_path) as f:
-                data = json.load(f)
-                self.betas_regressor_neutral = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
-
-        if "female" in obj.name.lower():
-            (A, B) = self.betas_regressor_female
-        elif "male" in obj.name.lower():
-            (A, B) = self.betas_regressor_male
-        elif "neutral" in obj.name.lower():
-            (A, B) = self.betas_regressor_neutral
-        else:
-            self.report({"ERROR"}, f"Cannot derive gender from mesh object name: {obj.name}")
-            return {"CANCELLED"}
+        gender = obj["smplx_gender"]
+        (A, B) = self.betas_regressor[gender]
 
         # Calculate beta values from measurements
         height_m = context.window_manager.smplx_tool.smplx_height
@@ -515,12 +496,13 @@ class SMPLXSnapGroundPlane(bpy.types.Operator):
 class SMPLXUpdateJointLocations(bpy.types.Operator):
     bl_idname = "object.smplx_update_joint_locations"
     bl_label = "Update Joint Locations"
-    bl_description = ("Update joint locations after shape/expression changes")
+    bl_description = ("Update joint locations after shape changes")
     bl_options = {'REGISTER', 'UNDO'}
 
-    j_regressor_female = { "10": None, "300": None, "300_lh": None }
-    j_regressor_male = { "10": None, "300": None, "300_lh": None }
-    j_regressor_neutral = { "10": None, "300": None, "300_lh": None }
+    j_regressor = {}
+    j_regressor["female"] = { "10": None, "300": None, "300_lh": None }
+    j_regressor["male"] = { "10": None, "300": None, "300_lh": None }
+    j_regressor["neutral"] = { "10": None, "300": None, "300_lh": None }
 
     @classmethod
     def poll(cls, context):
@@ -562,26 +544,15 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
 
         # Cache regressor files on first call
         for target_betas in ["10", "300", "300_lh"]:
-            if self.j_regressor_female[target_betas] is None:
-                self.j_regressor_female[target_betas] = self.load_regressor("female", target_betas)
-
-            if self.j_regressor_male[target_betas] is None:
-                self.j_regressor_male[target_betas] = self.load_regressor("male", target_betas)
-
-            if self.j_regressor_neutral[target_betas] is None:
-                self.j_regressor_neutral[target_betas] = self.load_regressor("neutral", target_betas)
+            for gender in ["female", "male", "neutral"]:
+                if self.j_regressor[gender][target_betas] is None:
+                    self.j_regressor[gender][target_betas] = self.load_regressor(gender, target_betas)
 
         key = f"{num_betas}"
-        if "-lh" in obj.name:
+        if obj["smplx_version"] == "locked_head":
             key += "_lh"
-
-        if "female" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_female[key]
-        elif "male" in obj.name:
-            (betas_to_joints, template_j) = self.j_regressor_male[key]
-        else:
-            (betas_to_joints, template_j) = self.j_regressor_neutral[key]
-
+        gender = obj["smplx_gender"]
+        (betas_to_joints, template_j) = self.j_regressor[gender][key]
         joint_locations = betas_to_joints @ betas + template_j
 
         # Set new bone joint locations
@@ -1313,12 +1284,7 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         skinned_mesh.select_set(True)
 
         # Rename armature and skinned mesh to not contain Blender copy suffix
-        if "female" in skinned_mesh.name:
-            gender = "female"
-        elif "male" in skinned_mesh.name:
-            gender = "male"
-        else:
-            gender = "neutral"
+        gender = skinned_mesh_original["smplx_gender"]
 
         target_mesh_name = "SMPLX-mesh-%s" % gender
         target_armature_name = "SMPLX-%s" % gender

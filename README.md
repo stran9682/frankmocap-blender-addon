@@ -7,7 +7,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + Used SMPL-X models:
   + SMPL-X v1.1
   + SMPL-X locked head (no head bun)
-  + 300 shape components, 10 expression components
+  + 300 shape components, 100 expression components
 
 # Features
 + Add female/male/neutral specific SMPL-X mesh to current scene
@@ -100,8 +100,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add support for 300 beta shape model
 + 20230120:
   + Add option to use relaxed hand reference frame when adding animation from file
-+ 20230217:
-  + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head. Setting shape from height and weight is currently only supported for v1.1 model.
++ 20230302:
+  + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head. Setting shape from height and weight is currently only correct for v1.1 model.
+  + Use models with 100 expressions
+  + Use custom properties on mesh object to store version and gender for internal processing instead of depending on proper object name tags
 
 ## Contact
 + smplx-blender@tue.mpg.de
