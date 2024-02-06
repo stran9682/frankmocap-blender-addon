@@ -2,7 +2,7 @@
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned meshes to your current Blender scene. Each imported SMPL-X mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression and pose correctives.
 
-+ Requirements: Blender 3.0+, tested with 3.4.1
++ Requirements: Blender 3.6+, tested with 4.0.2
 + Additional dependencies: None
 + Used SMPL-X models:
   + SMPL-X v1.1
@@ -68,7 +68,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + You agree to cite the most recent paper describing the model as specified on the SMPL-X website: https://smpl-x.is.tue.mpg.de
 
 ## Acknowledgements
-+ We thank [Meshcapade](https://meshcapade.com/) for providing the SMPL-X female/male sample textures (`smplx_texture_f_alb.png`, `smplx_texture_m_alb.png`) under [Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/) license.
++ We thank [Meshcapade](https://meshcapade.com/) for providing the SMPL-X female/male sample textures under [Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
 + Sergey Prokudin (rainbow texture data)
 
@@ -104,6 +104,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head. Setting shape from height and weight is currently only correct for v1.1 model.
   + Use models with 100 expressions
   + Use custom properties on mesh object to store version and gender for internal processing instead of depending on proper object name tags
++ 20240206:
+  + Add support for UV map 2023 version and corresponding female/male sample textures
+  + UV map 2023 is new default
 
 ## Contact
 + smplx-blender@tue.mpg.de

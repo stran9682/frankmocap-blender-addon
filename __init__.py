@@ -1,4 +1,4 @@
-# Copyright 2021, 2022 Perceiving Systems, Max Planck Institute for Intelligent Systems
+# Copyright 2024 Perceiving Systems, Max Planck Institute for Intelligent Systems
 
 # ##### BEGIN GPL LICENSE BLOCK #####
 #
@@ -21,8 +21,8 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2023, 3, 2),
-    "blender": (3, 0, 0),
+    "version": (2024, 2, 6),
+    "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
     "wiki_url": "https://smpl-x.is.tue.mpg.de/",
@@ -136,10 +136,16 @@ class PG_SMPLXProperties(PropertyGroup):
             items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
         )
 
+    smplx_uv: EnumProperty(
+        name = "UV",
+        description = "SMPL-X UV version",
+        items = [ ("UV_2023", "2023", "Latest UV layout with two eyeball regions"), ("UV_2021", "2021", "Original Blender add-on UV layout") ]
+    )
+
     smplx_texture: EnumProperty(
         name = "",
         description = "SMPL-X model texture",
-        items = [ ("NONE", "None", ""), ("smplx_texture_f_alb.png", "Female", ""), ("smplx_texture_m_alb.png", "Male", ""), ("smplx_texture_rainbow.png", "Rainbow", ""), ("UV_GRID", "UV Grid", ""), ("COLOR_GRID", "Color Grid", "") ]
+        items = [ ("NONE", "None", ""), ("smplx_texture_f_2023.png", "Female (UV 2023)", ""), ("smplx_texture_m_2023.png", "Male (UV 2023)", ""), ("smplx_texture_f_alb.png", "Female (UV 2021)", ""), ("smplx_texture_m_alb.png", "Male (UV 2021)", ""), ("smplx_texture_rainbow.png", "Rainbow (UV 2021)", ""), ("UV_GRID", "UV Grid", ""), ("COLOR_GRID", "Color Grid", "") ]
     )
 
     smplx_corrective_poseshapes: BoolProperty(
@@ -165,6 +171,8 @@ class SMPLXAddGender(bpy.types.Operator):
     bl_label = "Add"
     bl_description = ("Add SMPL-X model of selected gender to scene")
     bl_options = {'REGISTER', 'UNDO'}
+
+    uv_2023 = None
 
     @classmethod
     def poll(cls, context):
@@ -205,9 +213,28 @@ class SMPLXAddGender(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
         context.view_layer.objects.active = bpy.data.objects[object_name]
         bpy.data.objects[object_name].select_set(True)
+        obj = bpy.context.active_object
 
         # Set currently selected hand pose
         bpy.ops.object.smplx_set_handpose('EXEC_DEFAULT')
+
+        # Set target UV if needed, default UV in .blend is UV_2021
+        uv_version = context.window_manager.smplx_tool.smplx_uv
+        print(f"UV map: {uv_version}")
+        obj["smplx_uv"] = uv_version # store UV version as custom property
+
+        if uv_version == "UV_2023":
+            if self.uv_2023 is None:
+                path = os.path.dirname(os.path.realpath(__file__))
+                uv_npz_path = os.path.join(path, "data", "smplx_uv_2023.npz")
+                with np.load(uv_npz_path) as data:
+                    self.uv_2023 = data["uv_coordinates"]
+
+            # Write loaded UV coordinates to the UV map
+            uv_map = obj.data.uv_layers.active.data
+            for i, face in enumerate(obj.data.polygons):
+                for j, loop_index in enumerate(face.loop_indices):
+                    uv_map[loop_index].uv = self.uv_2023[i * len(face.loop_indices) + j]
 
         return {'FINISHED'}
 
@@ -1336,6 +1363,7 @@ class SMPLX_PT_Model(bpy.types.Panel):
         row = col.row(align=True)
         col.prop(context.window_manager.smplx_tool, "smplx_version")
         col.prop(context.window_manager.smplx_tool, "smplx_gender")
+        col.prop(context.window_manager.smplx_tool, "smplx_uv")
         col.operator("scene.smplx_add_gender", text="Add")
 
         col.separator()
