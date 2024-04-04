@@ -107,6 +107,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20240206:
   + Add support for UV map 2023 version and corresponding female/male sample textures
   + UV map 2023 is new default
++ 20240404:
+  + Add option to export shape values to .npz
 
 ## Contact
 + smplx-blender@tue.mpg.de

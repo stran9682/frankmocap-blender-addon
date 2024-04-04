@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 2, 6),
+    "version": (2024, 4, 4),
     "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1349,6 +1349,48 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
 
         return {'FINISHED'}
 
+class SMPLXExportShape(bpy.types.Operator, ExportHelper):
+    bl_idname = "object.smplx_export_shape"
+    bl_label = "Export Shape"
+    bl_description = ("Export shape beta values in NPZ format")
+    bl_options = {'REGISTER', 'UNDO'}
+
+    # ExportHelper mixin class uses this
+    filename_ext = ".npz"
+
+    @classmethod
+    def poll(cls, context):
+        try:
+            # Enable button only if mesh is active object
+            return (context.object.type == 'MESH')
+        except: return False
+
+    def execute(self, context):
+
+        obj = bpy.context.object
+
+        betas = []
+        for index in range(300):
+            key_block_name = f"Shape{index:03}"
+
+            if key_block_name in obj.data.shape_keys.key_blocks:
+                beta = obj.data.shape_keys.key_blocks[key_block_name].value
+                betas.append(beta)
+
+        data = {}
+        data["gender"] = obj["smplx_gender"]
+        data["mocap_frame_rate"] = 30
+        data["model"] = "smplx_" + obj["smplx_version"]
+        data["betas"] = betas
+        data["poses"] = [ [0.0] * 3 * NUM_SMPLX_JOINTS ]
+        data["trans"] = [ [0.0, 0.0, 0.0] ]
+        data["info"] = "Shape only, default pose"
+
+        np.savez_compressed(self.filepath, **data)
+        print("Exported: " + self.filepath)
+
+        return {'FINISHED'}
+
 class SMPLX_PT_Model(bpy.types.Panel):
     bl_label = "SMPL-X Model"
     bl_category = "SMPL-X"
@@ -1457,6 +1499,9 @@ class SMPLX_PT_Export(bpy.types.Panel):
         col.operator("object.smplx_export_fbx")
         col.separator()
 
+        col.operator("object.smplx_export_shape")
+        col.separator()
+
 #        export_button = col.operator("export_scene.obj", text="Export OBJ [m]", icon='EXPORT')
 #        export_button.global_scale = 1.0
 #        export_button.use_selection = True
@@ -1490,6 +1535,7 @@ classes = [
     SMPLXAddAnimation,
     SMPLXExportAlembic,
     SMPLXExportFBX,
+    SMPLXExportShape,
     SMPLX_PT_Model,
     SMPLX_PT_Shape,
     SMPLX_PT_Pose,
