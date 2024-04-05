@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 4, 4),
+    "version": (2024, 4, 5),
     "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1368,6 +1368,7 @@ class SMPLXExportShape(bpy.types.Operator, ExportHelper):
     def execute(self, context):
 
         obj = bpy.context.object
+        armature = obj.parent
 
         betas = []
         for index in range(300):
@@ -1384,7 +1385,12 @@ class SMPLXExportShape(bpy.types.Operator, ExportHelper):
         data["betas"] = betas
         data["poses"] = [ [0.0] * 3 * NUM_SMPLX_JOINTS ]
         data["trans"] = [ [0.0, 0.0, 0.0] ]
-        data["info"] = "Shape only, default pose"
+        data["info"] = "Shape only,default pose"
+
+        # Store current SnapToGroundPlane armature height offset which for default pose equals the distance used to map default bind pose to grounded bind pose
+        # Armature must be in default pose for correct results.
+        ground_plane_pelvis_offset = armature.location[2]
+        data["ground_plane_pelvis_offset"] = ground_plane_pelvis_offset
 
         np.savez_compressed(self.filepath, **data)
         print("Exported: " + self.filepath)

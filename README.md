@@ -109,6 +109,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + UV map 2023 is new default
 + 20240404:
   + Add option to export shape values to .npz
++ 20240405:
+  + Save current ground plane offset from SnapToGroundPlane to shape .npz to be able to later remap grounded bind pose animations to standard bind pose animations. Armature must be in default pose for correct results.
+
 
 ## Contact
 + smplx-blender@tue.mpg.de
