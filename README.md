@@ -107,11 +107,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20240206:
   + Add support for UV map 2023 version and corresponding female/male sample textures
   + UV map 2023 is new default
-+ 20240404:
-  + Add option to export shape values to .npz
-+ 20240405:
-  + Save current ground plane offset from SnapToGroundPlane to shape .npz to be able to later remap grounded bind pose animations to standard bind pose animations. Armature must be in default pose for correct results.
-
++ 20240408:
+  + Add option to export shape values (and optional bind pose height offset) to .npz
+    + If animation was imported with grounded bind pose the applied height offset change is stored as object property so that it can later be exported in the shape-only npz as `bind_pose_height_offset` key. This is needed to be able to later remap grounded bind pose animations to standard bind pose animations.
+      + If body shape was created via shape key modification then the offset result from SnapToGroundPlane is stored. Armature must be in default pose for correct SnapToGroundPlane height offset calculation.
 
 ## Contact
 + smplx-blender@tue.mpg.de

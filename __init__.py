@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 4, 5),
+    "version": (2024, 4, 8),
     "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1070,6 +1070,8 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             bpy.ops.object.smplx_snap_ground_plane('EXEC_DEFAULT')
             height_offset = armature.location[2]
 
+            obj["smplx_bind_pose_height_offset"] = height_offset
+
             # Apply location offsets to armature and skinned mesh
             bpy.context.view_layer.objects.active = armature
             armature.select_set(True)
@@ -1387,10 +1389,15 @@ class SMPLXExportShape(bpy.types.Operator, ExportHelper):
         data["trans"] = [ [0.0, 0.0, 0.0] ]
         data["info"] = "Shape only,default pose"
 
-        # Store current SnapToGroundPlane armature height offset which for default pose equals the distance used to map default bind pose to grounded bind pose
-        # Armature must be in default pose for correct results.
-        ground_plane_pelvis_offset = armature.location[2]
-        data["ground_plane_pelvis_offset"] = ground_plane_pelvis_offset
+        bind_pose_height_offset = 0.0
+        if "smplx_bind_pose_height_offset" in obj:
+            bind_pose_height_offset = obj["smplx_bind_pose_height_offset"]
+        else:
+            # Store current SnapToGroundPlane armature height offset which for default pose equals the distance used to map default bind pose to grounded bind pose.
+            # Armature must be in default pose for correct SnapToGroundPlane results.
+            bind_pose_height_offset = armature.location[2]
+
+        data["bind_pose_height_offset"] = bind_pose_height_offset
 
         np.savez_compressed(self.filepath, **data)
         print("Exported: " + self.filepath)
