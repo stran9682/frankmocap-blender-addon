@@ -111,6 +111,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add option to export shape values (and optional bind pose height offset) to .npz
     + If animation was imported with grounded bind pose the applied height offset change is stored as object property so that it can later be exported in the shape-only npz as `bind_pose_height_offset` key. This is needed to be able to later remap grounded bind pose animations to standard bind pose animations.
       + If body shape was created via shape key modification then the offset result from SnapToGroundPlane is stored. Armature must be in default pose for correct SnapToGroundPlane height offset calculation.
++ 20240418:
+  + Fix rainbow texture dark areas at vertices 4146 and 6553
 
 ## Contact
 + smplx-blender@tue.mpg.de
