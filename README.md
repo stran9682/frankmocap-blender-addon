@@ -2,7 +2,7 @@
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned meshes to your current Blender scene. Each imported SMPL-X mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression and pose correctives.
 
-+ Requirements: Blender 3.6+, tested with 4.0.2
++ Requirements: Blender 3.6+, tested with 4.2.3
 + Additional dependencies: None
 + Used SMPL-X models:
   + SMPL-X v1.1
@@ -25,6 +25,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + Over 3000 sample poses are available at https://agora.is.tuebingen.mpg.de/
         + Sign In > Download > Ground Truth Fittings > SMPL-X fits
 + Create animated body from animation .npz file (AMASS or SMPL-X)
+    + Use "Locked Head" model version when working with animation files from AMASS
 + Alembic (.abc) export of animated body as animated vertex geometry cache
     + Keyframed pose correctives are always baked into the vertices on export
     + Alembic animation can be imported into other third-party tools
@@ -35,9 +36,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + Export to Unity or Unreal Engine
         + Imported FBX will import in Unity/Unreal without rotations and without scaling
     + Shape key export options: 
-        + Body shape and posecorrectives
-        + Body shape without posecorrectives
-        + None (bakes current body shape into mesh)
+        + Body shape and pose correctives
+        + Body shape without pose correctives
+        + None (bakes current body shape into mesh, removes all pose correctives)
+        + Pose correctives only (bakes current body shape and expression into mesh, keeps all shape keys for pose correctives)
 
 ## Installation
 1. Register at https://smpl-x.is.tue.mpg.de and download the SMPL-X for Blender add-on. The ZIP release file will include the required SMPL-X model which is not included in the code repository.
@@ -113,6 +115,11 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
       + If body shape was created via shape key modification then the offset result from SnapToGroundPlane is stored. Armature must be in default pose for correct SnapToGroundPlane height offset calculation.
 + 20240418:
   + Fix rainbow texture dark areas at vertices 4146 and 6553
++ 20241127:
+  + Save custom properties when using "Export FBX" so that add-on can also be used for reimported SMPL-X FBX files
+  + Ensure valid shape key slider ranges so that add-on can also be used for reimported SMPL-X FBX files where initial range is [0, 1]
+  + Add new blend shape export option to FBX export for exporting only pose corrective blend shapes
+    + bakes current body shape and expression into mesh, keeps all pose correctives
 
 ## Contact
 + smplx-blender@tue.mpg.de

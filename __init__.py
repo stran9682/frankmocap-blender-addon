@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 4, 8),
+    "version": (2024, 11, 27),
     "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -53,6 +53,7 @@ SMPLX_JOINT_NAMES = [
 NUM_SMPLX_JOINTS = len(SMPLX_JOINT_NAMES)
 NUM_SMPLX_BODYJOINTS = 21
 NUM_SMPLX_HANDJOINTS = 15
+SHAPEKEY_VALUE_RANGE=5
 # End SMPL-X globals
 
 def rodrigues_from_pose(armature, bone_name):
@@ -107,6 +108,24 @@ def set_pose_from_rodrigues(armature, bone_name, rodrigues, rodrigues_reference=
         armature.pose.bones[bone_name].rotation_quaternion = quat_reference @ quat
         """
     return
+
+# Ensure that we have valid slider ranges, this needed for imported FBX files where the default range will be set to [0,1] on import
+def smplx_ensure_valid_shapekey_slider_ranges(skinned_mesh):
+    update_slider_ranges = False
+    for key_name in ["Shape000", "Exp000", "Pose000"]:
+        if key_name in skinned_mesh.data.shape_keys.key_blocks:
+            key_block = skinned_mesh.data.shape_keys.key_blocks[key_name]
+            if (key_block.slider_min > -SHAPEKEY_VALUE_RANGE) or (key_block.slider_max < SHAPEKEY_VALUE_RANGE):
+                update_slider_ranges = True
+                break
+
+    if update_slider_ranges:
+        for index, key_block in enumerate(skinned_mesh.data.shape_keys.key_blocks):
+            if index == 0:
+                continue # skip Base shape key
+
+            key_block.slider_min = -SHAPEKEY_VALUE_RANGE
+            key_block.slider_max = SHAPEKEY_VALUE_RANGE
 
 # Property groups for UI
 class PG_SMPLXProperties(PropertyGroup):
@@ -397,6 +416,7 @@ class SMPLXRandomShape(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
+        smplx_ensure_valid_shapekey_slider_ranges(obj)
         randomized_betas = 0
         for key_block in obj.data.shape_keys.key_blocks:
             if key_block.name.startswith("Shape"):
@@ -452,6 +472,7 @@ class SMPLXRandomExpressionShape(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
+        smplx_ensure_valid_shapekey_slider_ranges(obj)
         for key_block in obj.data.shape_keys.key_blocks:
             if key_block.name.startswith("Exp"):
                 key_block.value = np.random.uniform(-2, 2)
@@ -645,6 +666,8 @@ class SMPLXSetPoseshapes(bpy.types.Operator):
             obj = bpy.context.object.children[0]
         else:
             armature = obj.parent
+
+        smplx_ensure_valid_shapekey_slider_ranges(obj)
 
         pose = [0.0] * (NUM_SMPLX_JOINTS * 3)
 
@@ -1193,7 +1216,10 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
     export_shape_keys: EnumProperty(
         name = "Blend Shapes",
         description = "Blend shape export settings",
-        items = [ ("SHAPE_POSE", "All: Shape + Posecorrectives", "Export shape keys for body shape and pose correctives"), ("SHAPE", "Reduced: Shape space only", "Export only shape keys for body shape"), ("NONE", "None: Apply shape space", "Do not export any shape keys, shape keys for body shape will be baked into mesh") ],
+        items = [ ("SHAPE_POSECORRECTIVES", "All: Shape + Posecorrectives", "Export shape keys for body shape and pose correctives"),
+                  ("SHAPE", "Reduced: Shape space only", "Export only shape keys for body shape"),
+                  ("POSECORRECTIVES", "Reduced: Posecorrectives only", "Bake shape and expression into mesh, export only shape keys for pose correctives"),
+                  ("NONE", "None: Apply shape space", "Do not export any shape keys, shape keys for body shape will be baked into mesh") ],
     )
 
 
@@ -1246,7 +1272,7 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         # Reset pose
         bpy.ops.object.smplx_reset_pose('EXEC_DEFAULT')
 
-        if self.export_shape_keys != 'SHAPE_POSE':
+        if ( (self.export_shape_keys == 'SHAPE') or (self.export_shape_keys == 'NONE') ):
             # Remove pose corrective shape keys
             print("Removing pose corrective shape keys")
             num_shape_keys = len(skinned_mesh.data.shape_keys.key_blocks.keys())
@@ -1265,6 +1291,11 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
             # Bake and remove shape keys
             print("Baking shape and removing shape keys for shape")
 
+            # Zero out all pose corrective weights so that they do not contribute to baked shape
+            for key_block in skinned_mesh.data.shape_keys.key_blocks:
+                if key_block.name.startswith("Pose"):
+                    key_block.value = 0.0
+
             # Create shape mix for current shape
             bpy.ops.object.shape_key_add(from_mix=True)
             num_shape_keys = len(skinned_mesh.data.shape_keys.key_blocks.keys())
@@ -1273,6 +1304,39 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
             bpy.context.object.active_shape_key_index = 0
             for count in range(0, num_shape_keys):
                 bpy.ops.object.shape_key_remove(all=False)
+
+        elif self.export_shape_keys == 'POSECORRECTIVES':
+            # Bake shape and expression into Base shape key
+            print("Baking shape and expression into Base shape key")
+
+            # Zero out all pose corrective weights so that they do not contribute to baked shape
+            for key_block in skinned_mesh.data.shape_keys.key_blocks:
+                if key_block.name.startswith("Pose"):
+                    key_block.value = 0.0
+
+            # Create shape mix from current shape and expression
+            bpy.ops.object.shape_key_add(from_mix=True)
+            bpy.context.object.active_shape_key.name = "ShapeMix"
+
+            # Copy shape mix vertices intp Base shape key
+            bpy.context.object.active_shape_key_index = 0 # Select Base shape key
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.blend_from_shape(shape="ShapeMix", blend=1, add=False)
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+            # Remove all shape and expression keys and shape mix
+            num_shape_keys = len(skinned_mesh.data.shape_keys.key_blocks.keys())
+            current_shape_key_index = 1
+            for _ in range(1, num_shape_keys):
+                bpy.context.object.active_shape_key_index = current_shape_key_index
+
+                if bpy.context.object.active_shape_key is not None:
+                    if (bpy.context.object.active_shape_key.name.startswith('Shape') or
+                        bpy.context.object.active_shape_key.name.startswith('Exp')):
+                        bpy.ops.object.shape_key_remove(all=False)
+                    else:
+                        current_shape_key_index = current_shape_key_index + 1
+            bpy.context.object.active_shape_key_index = 0
 
         # Model (skeleton and skinned mesh) needs to have rotation of (90, 0, 0) when exporting so that it will have rotation (0, 0, 0) when imported into Unity
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -1329,7 +1393,14 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         # Default FBX export settings export all animations. Since we duplicated the armature we have a copy of the animation and the original animation.
         # We avoid export of both by only exporting the active animation for the armature (bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False).
         # Disable keyframe simplification to ensure that exported FBX animation properly matches up with exported Alembic cache.
-        bpy.ops.export_scene.fbx(filepath=self.filepath, use_selection=True, apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False, bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False, bake_anim_simplify_factor=0)
+        bpy.ops.export_scene.fbx(filepath=self.filepath,
+                                 use_selection=True,
+                                 apply_scale_options="FBX_SCALE_ALL",
+                                 use_custom_props=True,
+                                 add_leaf_bones=False,
+                                 bake_anim_use_nla_strips=False,
+                                 bake_anim_use_all_actions=False,
+                                 bake_anim_simplify_factor=0)
 
         print("Exported: " + self.filepath)
 
