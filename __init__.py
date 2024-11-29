@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 11, 27),
+    "version": (2024, 11, 29),
     "blender": (3, 6, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",

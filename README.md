@@ -5,8 +5,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + Requirements: Blender 3.6+, tested with 4.2.3
 + Additional dependencies: None
 + Used SMPL-X models:
+  + SMPL-X locked head (no head bun), this is the new default model
   + SMPL-X v1.1
-  + SMPL-X locked head (no head bun)
   + 300 shape components, 100 expression components
 
 # Features
@@ -57,6 +57,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + The add-on GUI (gender, texture, hand pose) does not reflect the state of the currently selected SMPL-X model if you work with multiple models in one scene.
 + To maintain editor responsiveness the add-on does not automatically recalculate joint locations when you change the shape manually via Blender shape keys. Use the `Update Joint Locations` button to update the joint locations after manual shape key change.
 + To maintain editor responsiveness, the add-on does not automatically recalculate the corrective pose shape keys when you change the armature pose. Use the `Update Pose Shapes` button to update the joint locations after pose changes.
++ Setting shape from height and weight should be used with the v1.1 model for best results
++ This add-on supports both `locked head (no head bun)` and `v1.1` model versions. Make sure to select the correct one before using the AddAnimation option.
+  + Use `locked head` when working with AMASS animations
 
 ## License
 + Generated body mesh data using this add-on:
@@ -103,7 +106,11 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20230120:
   + Add option to use relaxed hand reference frame when adding animation from file
 + 20230302:
-  + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head. Setting shape from height and weight is currently only correct for v1.1 model.
+  + Add SMPL-X locked head (no head bun) model and option to choose between v1.1 and locked head
+    + Setting shape from height and weight is only correct for v1.1 model
+  + The locked head (no head bun) model is the new default option
+    + Use this model for AMASS animations
+    + Python scripts which want to use v1.1 model need to update the code to select v1.1 model
   + Use models with 100 expressions
   + Use custom properties on mesh object to store version and gender for internal processing instead of depending on proper object name tags
 + 20240206:
@@ -115,7 +122,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
       + If body shape was created via shape key modification then the offset result from SnapToGroundPlane is stored. Armature must be in default pose for correct SnapToGroundPlane height offset calculation.
 + 20240418:
   + Fix rainbow texture dark areas at vertices 4146 and 6553
-+ 20241127:
++ 20241129:
   + Save custom properties when using "Export FBX" so that add-on can also be used for reimported SMPL-X FBX files
   + Ensure valid shape key slider ranges so that add-on can also be used for reimported SMPL-X FBX files where initial range is [0, 1]
   + Add new blend shape export option to FBX export for exporting only pose corrective blend shapes
