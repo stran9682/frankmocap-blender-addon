@@ -21,8 +21,8 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2024, 11, 29),
-    "blender": (3, 6, 0),
+    "version": (2026, 4, 2),
+    "blender": (4, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
     "wiki_url": "https://smpl-x.is.tue.mpg.de/",
@@ -199,7 +199,7 @@ class SMPLXAddGender(bpy.types.Operator):
             # Enable button only if in Object Mode
             if (context.active_object is None) or (context.active_object.mode == 'OBJECT'):
                 return True
-            else: 
+            else:
                 return False
         except: return False
 
@@ -755,7 +755,7 @@ class SMPLXSetHandpose(bpy.types.Operator):
 
         hand_joint_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
         for index in range(2 * NUM_SMPLX_HANDJOINTS):
-            pose_rodrigues = hand_pose[index]            
+            pose_rodrigues = hand_pose[index]
             bone_name = SMPLX_JOINT_NAMES[index + hand_joint_start_index]
             set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
 
@@ -1285,7 +1285,7 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
                     if bpy.context.object.active_shape_key.name.startswith('Pose'):
                         bpy.ops.object.shape_key_remove(all=False)
                     else:
-                        current_shape_key_index = current_shape_key_index + 1        
+                        current_shape_key_index = current_shape_key_index + 1
 
         if self.export_shape_keys == 'NONE':
             # Bake and remove shape keys
@@ -1364,7 +1364,14 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
             # Scale keyframed pelvis locations if available
             if armature.animation_data is not None:
                 action = armature.animation_data.action
-                for fcurve in action.fcurves:
+                if bpy.app.version >= (5, 0, 0):
+                    from bpy_extras import anim_utils
+                    action_slot = armature.animation_data.action_slot
+                    channelbag = anim_utils.action_get_channelbag_for_slot(action, action_slot)
+                    fcurves = channelbag.fcurves
+                else:
+                    fcurves = action.fcurves
+                for fcurve in fcurves:
                     if fcurve.data_path.endswith("location"):
                         for keyframe_point in fcurve.keyframe_points:
                             keyframe_point.co[1] = keyframe_point.co[1] * 100
@@ -1485,7 +1492,7 @@ class SMPLX_PT_Model(bpy.types.Panel):
 
         layout = self.layout
         col = layout.column(align=True)
-        
+
         row = col.row(align=True)
         col.prop(context.window_manager.smplx_tool, "smplx_version")
         col.prop(context.window_manager.smplx_tool, "smplx_gender")

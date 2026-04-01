@@ -2,7 +2,7 @@
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned meshes to your current Blender scene. Each imported SMPL-X mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression and pose correctives.
 
-+ Requirements: Blender 3.6+, tested with 4.2.3
++ Requirements: Blender 4.0+, tested with 4.5.8 and 5.0.1
 + Additional dependencies: None
 + Used SMPL-X models:
   + SMPL-X locked head (no head bun), this is the new default model
@@ -35,7 +35,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + FBX export
     + Export to Unity or Unreal Engine
         + Imported FBX will import in Unity/Unreal without rotations and without scaling
-    + Shape key export options: 
+    + Shape key export options:
         + Body shape and pose correctives
         + Body shape without pose correctives
         + None (bakes current body shape into mesh, removes all pose correctives)
@@ -60,6 +60,16 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + Setting shape from height and weight should be used with the v1.1 model for best results
 + This add-on supports both `locked head (no head bun)` and `v1.1` model versions. Make sure to select the correct one before using the AddAnimation option.
   + Use `locked head` when working with AMASS animations
++ Use the following FBX importer settings when re-importing Unreal FBX files into Blender which were exported with the "Export FBX" button of this add-on:
+  + Scale: 0.01
+  + Animation>Offset: 0
+
+## Known Issues
++ The new C++ Blender FBX importer (`bpy.ops.wm.fbx_import`) does not correctly set slider ranges for all imported shape keys
+  + This can be observed by importing an Unreal FBX with keyframed posecorrectives which was exported with `Export FBX` button. You will then see orange shape keys, which indicate that the default range of [0, 1] is used. This will then clamp negative values to 0.
+  + Tested with Blender 4.5.8 and 5.0.1
+  + We recommend to use the legacy FBX importer (`bpy.ops.import_scene.fbx`) which does not have this issue
+
 
 ## License
 + Generated body mesh data using this add-on:
@@ -69,7 +79,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 
 + See LICENSE.md for further license information including commercial licensing
 
-+ Attribution for publications: 
++ Attribution for publications:
     + You agree to cite the most recent paper describing the model as specified on the SMPL-X website: https://smpl-x.is.tue.mpg.de
 
 ## Acknowledgements
@@ -127,6 +137,9 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Ensure valid shape key slider ranges so that add-on can also be used for reimported SMPL-X FBX files where initial range is [0, 1]
   + Add new blend shape export option to FBX export for exporting only pose corrective blend shapes
     + bakes current body shape and expression into mesh, keeps all pose correctives
++ 20260402:
+  + Add Blender 5.0 support for FBX Unreal animation export
+
 
 ## Contact
 + smplx-blender@tue.mpg.de
