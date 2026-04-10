@@ -21,7 +21,7 @@
 bl_info = {
     "name": "SMPL-X for Blender",
     "author": "Joachim Tesch, Max Planck Institute for Intelligent Systems",
-    "version": (2026, 4, 2),
+    "version": (2026, 4, 10),
     "blender": (4, 0, 0),
     "location": "Viewport > Right panel",
     "description": "SMPL-X for Blender",
@@ -1231,6 +1231,12 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         ),
     )
 
+    animation_only: BoolProperty(
+        name="Animation Only",
+        description="Export only the animation (armature) without the mesh",
+        default=False,
+    )
+
     @classmethod
     def poll(cls, context):
         try:
@@ -1397,12 +1403,17 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
             bpy.data.objects[target_armature_name].name = "SMPLX-temp-armature"
         armature.name = target_armature_name
 
+        object_types = {'ARMATURE', 'MESH', 'OTHER'}
+        if self.animation_only:
+            object_types = {'ARMATURE'}
+
         # Default FBX export settings export all animations. Since we duplicated the armature we have a copy of the animation and the original animation.
         # We avoid export of both by only exporting the active animation for the armature (bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False).
         # Disable keyframe simplification to ensure that exported FBX animation properly matches up with exported Alembic cache.
         bpy.ops.export_scene.fbx(filepath=self.filepath,
                                  use_selection=True,
                                  apply_scale_options="FBX_SCALE_ALL",
+                                 object_types=object_types,
                                  use_custom_props=True,
                                  add_leaf_bones=False,
                                  bake_anim_use_nla_strips=False,

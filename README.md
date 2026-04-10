@@ -139,7 +139,8 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
     + bakes current body shape and expression into mesh, keeps all pose correctives
 + 20260402:
   + Add Blender 5.0 support for FBX Unreal animation export
-
++ 20260410:
+  + Add FBX export option to export only animation without mesh (default: off)
 
 ## Contact
 + smplx-blender@tue.mpg.de
