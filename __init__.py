@@ -40,92 +40,27 @@ import numpy as np
 import os
 import pickle
 
-# SMPL-X globals
-USE_SMPLX_2020 = False
-SMPLX_MODELFILE = "smplx_model_20210421.blend"
-SMPLX_MODELFILE_300 = "smplx_model_20230302.blend"
-SMPLX_MODELFILE_LH = "smplx_model_lh_20230302.blend"
-SMPLX_MODELFILE_2020 = "smplx_model_2020_20230227.blend"
-SMPLX_JOINT_NAMES = [
-    'pelvis','left_hip','right_hip','spine1','left_knee','right_knee','spine2','left_ankle','right_ankle','spine3', 'left_foot','right_foot','neck','left_collar','right_collar','head','left_shoulder','right_shoulder','left_elbow', 'right_elbow','left_wrist','right_wrist',
-    'jaw','left_eye_smplhf','right_eye_smplhf','left_index1','left_index2','left_index3','left_middle1','left_middle2','left_middle3','left_pinky1','left_pinky2','left_pinky3','left_ring1','left_ring2','left_ring3','left_thumb1','left_thumb2','left_thumb3','right_index1','right_index2','right_index3','right_middle1','right_middle2','right_middle3','right_pinky1','right_pinky2','right_pinky3','right_ring1','right_ring2','right_ring3','right_thumb1','right_thumb2','right_thumb3'
-]
-NUM_SMPLX_JOINTS = len(SMPLX_JOINT_NAMES)
-NUM_SMPLX_BODYJOINTS = 21
-NUM_SMPLX_HANDJOINTS = 15
-SHAPEKEY_VALUE_RANGE=5
-# End SMPL-X globals
+from .utils.constants import (
+    USE_SMPLX_2020,
+    SMPLX_MODELFILE,
+    SMPLX_MODELFILE_300,
+    SMPLX_MODELFILE_LH,
+    SMPLX_MODELFILE_2020,
+    SMPLX_JOINT_NAMES,
+    NUM_SMPLX_JOINTS,
+    NUM_SMPLX_BODYJOINTS,
+    NUM_SMPLX_HANDJOINTS,
+    SHAPEKEY_VALUE_RANGE,
+)
+from .utils.pose import rodrigues_from_pose, set_pose_from_rodrigues
+from .utils.shapekeys import smplx_ensure_valid_shapekey_slider_ranges
 
-def rodrigues_from_pose(armature, bone_name):
-    # Use quaternion mode for all bone rotations
-    if armature.pose.bones[bone_name].rotation_mode != 'QUATERNION':
-        armature.pose.bones[bone_name].rotation_mode = 'QUATERNION'
-
-    quat = armature.pose.bones[bone_name].rotation_quaternion
-    (axis, angle) = quat.to_axis_angle()
-    rodrigues = axis
-    rodrigues.normalize()
-    rodrigues = rodrigues * angle
-    return rodrigues
 
 def update_corrective_poseshapes(self, context):
     if self.smplx_corrective_poseshapes:
         bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
     else:
         bpy.ops.object.smplx_reset_poseshapes('EXEC_DEFAULT')
-
-def set_pose_from_rodrigues(armature, bone_name, rodrigues, rodrigues_reference=None):
-    rod = Vector((rodrigues[0], rodrigues[1], rodrigues[2]))
-    angle_rad = rod.length
-    axis = rod.normalized()
-
-    if armature.pose.bones[bone_name].rotation_mode != 'QUATERNION':
-        armature.pose.bones[bone_name].rotation_mode = 'QUATERNION'
-
-    quat = Quaternion(axis, angle_rad)
-
-    if rodrigues_reference is None:
-        armature.pose.bones[bone_name].rotation_quaternion = quat
-    else:
-        # SMPL-X is adding the reference rodrigues rotation to the relaxed hand rodrigues rotation, so we have to do the same here.
-        # This means that pose values for relaxed hand model cannot be interpreted as rotations in the local joint coordinate system of the relaxed hand.
-        # https://github.com/vchoutas/smplx/blob/f4206853a4746139f61bdcf58571f2cea0cbebad/smplx/body_models.py#L1190
-        #   full_pose += self.pose_mean
-        rod_reference = Vector((rodrigues_reference[0], rodrigues_reference[1], rodrigues_reference[2]))
-        rod_result = rod + rod_reference
-        angle_rad_result = rod_result.length
-        axis_result = rod_result.normalized()
-        quat_result = Quaternion(axis_result, angle_rad_result)
-        armature.pose.bones[bone_name].rotation_quaternion = quat_result
-
-        """
-        rod_reference = Vector((rodrigues_reference[0], rodrigues_reference[1], rodrigues_reference[2]))
-        angle_rad_reference = rod_reference.length
-        axis_reference = rod_reference.normalized()
-        quat_reference = Quaternion(axis_reference, angle_rad_reference)
-
-        # Rotate first into reference pose and then add the target pose
-        armature.pose.bones[bone_name].rotation_quaternion = quat_reference @ quat
-        """
-    return
-
-# Ensure that we have valid slider ranges, this needed for imported FBX files where the default range will be set to [0,1] on import
-def smplx_ensure_valid_shapekey_slider_ranges(skinned_mesh):
-    update_slider_ranges = False
-    for key_name in ["Shape000", "Exp000", "Pose000"]:
-        if key_name in skinned_mesh.data.shape_keys.key_blocks:
-            key_block = skinned_mesh.data.shape_keys.key_blocks[key_name]
-            if (key_block.slider_min > -SHAPEKEY_VALUE_RANGE) or (key_block.slider_max < SHAPEKEY_VALUE_RANGE):
-                update_slider_ranges = True
-                break
-
-    if update_slider_ranges:
-        for index, key_block in enumerate(skinned_mesh.data.shape_keys.key_blocks):
-            if index == 0:
-                continue # skip Base shape key
-
-            key_block.slider_min = -SHAPEKEY_VALUE_RANGE
-            key_block.slider_max = SHAPEKEY_VALUE_RANGE
 
 # Property groups for UI
 class PG_SMPLXProperties(PropertyGroup):
