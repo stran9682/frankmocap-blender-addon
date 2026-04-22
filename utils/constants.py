@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 USE_SMPLX_2020 = False
 SMPLX_MODELFILE = "smplx_model_20210421.blend"
@@ -14,4 +14,4 @@ NUM_SMPLX_BODYJOINTS = 21
 NUM_SMPLX_HANDJOINTS = 15
 SHAPEKEY_VALUE_RANGE = 5
 
-ADDON_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+ADDON_ROOT = Path(__file__).resolve().parent.parent
