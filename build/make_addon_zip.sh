@@ -9,7 +9,6 @@
 
 #BUILD_SMPLX_10=1
 BUILD_SMPLX_300=1
-#BUILD_SMPLX_2020=1
 
 pushd ../..
 
@@ -59,12 +58,6 @@ if [ -n "$BUILD_SMPLX_300" ]; then
   build_zip "./smplx_blender_addon_lh_${filedate}.zip" \
     smplx_blender_addon/data/smplx_model_20230302.blend \
     smplx_blender_addon/data/smplx_model_lh_20230302.blend
-fi
-
-if [ -n "$BUILD_SMPLX_2020" ]; then
-  # Build SMPL-X 2020 model add-on
-  build_zip "./smplx_blender_addon_2020_300_100_${filedate}.zip" \
-    smplx_blender_addon/data/smplx_model_2020_300_100_20230227.blend
 fi
 
 popd

@@ -2,8 +2,6 @@ import bpy
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 
-from ..utils.constants import USE_SMPLX_2020
-
 
 def update_corrective_poseshapes(self, context):
     if self.smplx_corrective_poseshapes:
@@ -14,30 +12,17 @@ def update_corrective_poseshapes(self, context):
 
 class PG_SMPLXProperties(PropertyGroup):
 
-    if USE_SMPLX_2020:
-        smplx_version: EnumProperty(
-            name = "Version",
-            description = "SMPL-X version",
-            items = [ ("2020", "2020", "SMPL-X with FLAME 2020 expression blendshapes")]
-        )
+    smplx_version: EnumProperty(
+        name = "Version",
+        description = "SMPL-X version",
+        items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
+    )
 
-        smplx_gender: EnumProperty(
-            name = "Model",
-            description = "SMPL-X model",
-            items = [ ("neutral", "Neutral", "")]
-        )
-    else:
-        smplx_version: EnumProperty(
-            name = "Version",
-            description = "SMPL-X version",
-            items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
-        )
-
-        smplx_gender: EnumProperty(
-            name = "Model",
-            description = "SMPL-X model",
-            items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
-        )
+    smplx_gender: EnumProperty(
+        name = "Model",
+        description = "SMPL-X model",
+        items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
+    )
 
     smplx_uv: EnumProperty(
         name = "UV",

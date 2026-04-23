@@ -6,7 +6,6 @@ from ..utils.constants import (
     SMPLX_MODELFILE,
     SMPLX_MODELFILE_300,
     SMPLX_MODELFILE_LH,
-    SMPLX_MODELFILE_2020,
 )
 
 
@@ -36,8 +35,6 @@ class SMPLXAddGender(bpy.types.Operator):
 
         if context.window_manager.smplx_tool.smplx_version == "locked_head":
             model_file = SMPLX_MODELFILE_LH
-        elif context.window_manager.smplx_tool.smplx_version == "2020":
-            model_file = SMPLX_MODELFILE_2020
         else:
             # v1.1
             # Use 300 shape model if available
