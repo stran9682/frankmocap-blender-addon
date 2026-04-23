@@ -144,6 +144,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
 + 20260423:
   + Refactor legacy add-on code into subfolders and use new extension add-on definition introduced with Blender 4.2
   + Show status of installed body models in preferences panel (Edit>Preferences>Add-ons>SMPL-X for Blender)
+  + Show cursor-based progress indicator when adding .npz animation
 
 ## Contact
 + smplx-blender@tue.mpg.de

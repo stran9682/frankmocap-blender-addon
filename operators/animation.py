@@ -171,47 +171,59 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
         elif num_keyframes > context.scene.frame_end:
             context.scene.frame_end = num_keyframes
 
-        for index, frame in enumerate(range(0, num_frames, step_size)):
-            if (index % 100) == 0:
-                print(f"  {index}/{num_keyframes}")
-            current_frame = index + 1
-            current_pose = poses[frame].reshape(-1, 3)
-            current_trans = trans[frame]
-            for bone_index, bone_name in enumerate(SMPLX_JOINT_NAMES):
-                if bone_name == "pelvis":
-                    # Keyframe pelvis location
-                    if self.rest_position == "GROUNDED":
-                        current_trans[1] = current_trans[1] - height_offset # SMPL-X local joint coordinates are Y-Up
+        wm = context.window_manager
+        show_progress = not bpy.app.background
+        if show_progress:
+            # Percentage-based scale so the cursor's fractional-percent row
+            # (2 decimal digits on Windows) always reads "00".
+            wm.progress_begin(0, 100)
+        try:
+            for index, frame in enumerate(range(0, num_frames, step_size)):
+                if (index % 100) == 0:
+                    print(f"  {index}/{num_keyframes}")
+                if show_progress and (index % 10) == 0:
+                    wm.progress_update(index * 100 // num_keyframes)
+                current_frame = index + 1
+                current_pose = poses[frame].reshape(-1, 3)
+                current_trans = trans[frame]
+                for bone_index, bone_name in enumerate(SMPLX_JOINT_NAMES):
+                    if bone_name == "pelvis":
+                        # Keyframe pelvis location
+                        if self.rest_position == "GROUNDED":
+                            current_trans[1] = current_trans[1] - height_offset # SMPL-X local joint coordinates are Y-Up
 
-                    armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
-                    armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
+                        armature.pose.bones[bone_name].location = Vector((current_trans[0], current_trans[1], current_trans[2]))
+                        armature.pose.bones[bone_name].keyframe_insert('location', frame=current_frame)
 
-                # Keyframe bone rotation
-                pose_rodrigues = current_pose[bone_index]
+                    # Keyframe bone rotation
+                    pose_rodrigues = current_pose[bone_index]
 
-                if self.hand_reference == "FLAT":
-                    set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
-                else:
-                    # Relaxed hand pose uses different coordinate system for fingers
-                    finger_names = ["index", "middle", "pinky", "ring", "thumb"]
-                    if not any([x in bone_name for x in finger_names]):
+                    if self.hand_reference == "FLAT":
                         set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
                     else:
-                        # Finger rotations are relative to relaxed hand pose
-                        hand_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
-                        relaxed_hand_joint_index = bone_index - hand_start_index
-                        pose_relaxed_rodrigues = self.hand_pose_relaxed[relaxed_hand_joint_index]
-                        set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)
+                        # Relaxed hand pose uses different coordinate system for fingers
+                        finger_names = ["index", "middle", "pinky", "ring", "thumb"]
+                        if not any([x in bone_name for x in finger_names]):
+                            set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
+                        else:
+                            # Finger rotations are relative to relaxed hand pose
+                            hand_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
+                            relaxed_hand_joint_index = bone_index - hand_start_index
+                            pose_relaxed_rodrigues = self.hand_pose_relaxed[relaxed_hand_joint_index]
+                            set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)
 
-                armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
+                    armature.pose.bones[bone_name].keyframe_insert('rotation_quaternion', frame=current_frame)
 
-            if self.keyframe_corrective_pose_weights:
-                # Calculate corrective poseshape weights for current pose and keyframe them.
-                # Note: This significantly increases animation load time and also reduces real-time playback speed in Blender viewport.
-                bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
-                for key_block in obj.data.shape_keys.key_blocks:
-                    if key_block.name.startswith("Pose"):
-                        key_block.keyframe_insert("value", frame=current_frame)
+                if self.keyframe_corrective_pose_weights:
+                    # Calculate corrective poseshape weights for current pose and keyframe them.
+                    # Note: This significantly increases animation load time and also reduces real-time playback speed in Blender viewport.
+                    bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
+                    for key_block in obj.data.shape_keys.key_blocks:
+                        if key_block.name.startswith("Pose"):
+                            key_block.keyframe_insert("value", frame=current_frame)
+        finally:
+            if show_progress:
+                wm.progress_end()
 
         if self.anim_format == "AMASS":
             # AMASS target floor is XY ground plane for SMPL-X template in OpenGL Y-up space (XZ ground plane).
