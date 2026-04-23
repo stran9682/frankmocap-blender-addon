@@ -1,5 +1,7 @@
 import bpy
 
+from ..utils.constants import ADDON_VERSION
+
 
 class SMPLX_PT_Model(bpy.types.Panel):
     bl_label = "SMPL-X Model"
@@ -124,6 +126,9 @@ class SMPLX_PT_Export(bpy.types.Panel):
         row = col.row(align=True)
         row.operator("ed.undo", icon='LOOP_BACK')
         row.operator("ed.redo", icon='LOOP_FORWARDS')
+        col.separator()
+
+        col.label(text=f"Version: {ADDON_VERSION}")
 
 
 classes = (
