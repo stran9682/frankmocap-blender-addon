@@ -1,18 +1,13 @@
 #!/bin/bash
 # Build distributable Blender 4.5+ extension zips for SMPL-X.
 #
-# Each build target ships a different combination of .blend model files, so
-# we keep the per-target zip approach. For a single-target build that just
-# packages the current source tree, use Blender's official builder instead:
-#   blender --command extension build --source-dir smplx_blender_addon
-# which validates blender_manifest.toml and produces a one-shot zip.
 
-#BUILD_SMPLX_10=1
 BUILD_SMPLX_300=1
 
 pushd ../..
 
 filedate=$(date '+%Y%m%d')
+version=$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' smplx_blender_addon/blender_manifest.toml)
 
 # Files common to every build target.
 common_files=(
@@ -47,17 +42,14 @@ build_zip() {
   zip -r "$archive" "${common_files[@]}" "$@" -x "${exclude_patterns[@]}"
 }
 
-if [ -n "$BUILD_SMPLX_10" ]; then
-  # Build 10 shape model add-on
-  build_zip "./smplx_blender_addon_${filedate}.zip" \
-    smplx_blender_addon/data/smplx_model_20210421.blend
-fi
-
 if [ -n "$BUILD_SMPLX_300" ]; then
   # Build 300 shape model add-on
-  build_zip "./smplx_blender_addon_lh_${filedate}.zip" \
+  output_filepath="./smplx_blender_addon-${version}-${filedate}.zip"
+  build_zip "${output_filepath}" \
     smplx_blender_addon/data/smplx_model_20230302.blend \
     smplx_blender_addon/data/smplx_model_lh_20230302.blend
+
+  echo "Generated: ${output_filepath}"
 fi
 
 popd
