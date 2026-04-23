@@ -143,6 +143,7 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add FBX export option to export only animation without mesh (default: off)
 + 20260423:
   + Refactor legacy add-on code into subfolders and use new extension add-on definition introduced with Blender 4.2
+  + Show status of installed body models in preferences panel (Edit>Preferences>Add-ons>SMPL-X for Blender)
 
 ## Contact
 + smplx-blender@tue.mpg.de
