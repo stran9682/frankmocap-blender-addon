@@ -4,11 +4,8 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    NUM_SMPLX_JOINTS,
-    SMPLX_JOINT_NAMES,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import get_active_model_spec
 from ..utils.shapekeys import smplx_ensure_valid_shapekey_slider_ranges
 
 
@@ -26,8 +23,10 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
+            if not ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')):
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_measurements_to_betas
         except: return False
 
     def execute(self, context):
@@ -100,7 +99,9 @@ class SMPLXRandomShape(bpy.types.Operator):
                 if randomized_betas >= 16:
                     break
 
-        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+        spec = get_active_model_spec(context)
+        if spec and spec.regressor_template is not None:
+            bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
         return {'FINISHED'}
 
@@ -125,7 +126,9 @@ class SMPLXResetShape(bpy.types.Operator):
             if key_block.name.startswith("Shape"):
                 key_block.value = 0.0
 
-        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+        spec = get_active_model_spec(context)
+        if spec and spec.regressor_template is not None:
+            bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
         return {'FINISHED'}
 
@@ -139,8 +142,10 @@ class SMPLXRandomExpressionShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return context.object.type == 'MESH'
+            if context.object.type != 'MESH':
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_expressions
         except: return False
 
     def execute(self, context):
@@ -163,8 +168,10 @@ class SMPLXResetExpressionShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return context.object.type == 'MESH'
+            if context.object.type != 'MESH':
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_expressions
         except: return False
 
     def execute(self, context):
@@ -232,8 +239,10 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
+            if not ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')):
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.regressor_template is not None
         except: return False
 
     def load_regressor(self, gender, betas):
@@ -257,6 +266,11 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        spec = get_active_model_spec(context)
+        if spec is None or spec.regressor_template is None:
+            self.report({'WARNING'}, "Joint regressor not available for this model")
+            return {'CANCELLED'}
 
         # Get beta shapes
         betas = []
@@ -284,14 +298,14 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         bpy.context.view_layer.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT')
 
-        for index in range(NUM_SMPLX_JOINTS):
-            bone = armature.data.edit_bones[SMPLX_JOINT_NAMES[index]]
+        for index, bone_name in enumerate(spec.joint_names):
+            bone = armature.data.edit_bones[bone_name]
             bone.head = (0.0, 0.0, 0.0)
             bone.tail = (0.0, 0.0, 0.1)
 
-            # Convert SMPL-X joint locations to Blender joint locations
-            joint_location_smplx = joint_locations[index]
-            bone_start = Vector( (joint_location_smplx[0], -joint_location_smplx[2], joint_location_smplx[1]) )
+            # Convert SMPL-family joint locations to Blender joint locations
+            joint_location = joint_locations[index]
+            bone_start = Vector( (joint_location[0], -joint_location[2], joint_location[1]) )
             bone.translate(bone_start)
 
         bpy.ops.object.mode_set(mode='OBJECT')

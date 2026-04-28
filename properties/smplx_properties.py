@@ -2,6 +2,8 @@ import bpy
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 
+from ..utils.model_spec import MODELS, get_active_model_spec
+
 
 def update_corrective_poseshapes(self, context):
     if self.smplx_corrective_poseshapes:
@@ -10,7 +12,23 @@ def update_corrective_poseshapes(self, context):
         bpy.ops.object.smplx_reset_poseshapes('EXEC_DEFAULT')
 
 
+def _texture_items(self, context):
+    spec = get_active_model_spec(context) or MODELS[self.model_type]
+    return list(spec.texture_items)
+
+
+def _gender_items(self, context):
+    return list(MODELS[self.model_type].gender_items)
+
+
 class PG_SMPLXProperties(PropertyGroup):
+
+    model_type: EnumProperty(
+        name = "Type",
+        description = "Body model family",
+        items = [ ("smplx", "SMPL-X", ""), ("smplh", "SMPL+H", "") ],
+        default = "smplx",
+    )
 
     smplx_version: EnumProperty(
         name = "Version",
@@ -19,9 +37,9 @@ class PG_SMPLXProperties(PropertyGroup):
     )
 
     smplx_gender: EnumProperty(
-        name = "Model",
-        description = "SMPL-X model",
-        items = [ ("female", "Female", ""), ("male", "Male", ""), ("neutral", "Neutral", "")]
+        name = "Body",
+        description = "Body to load",
+        items = _gender_items,
     )
 
     smplx_uv: EnumProperty(
@@ -32,8 +50,8 @@ class PG_SMPLXProperties(PropertyGroup):
 
     smplx_texture: EnumProperty(
         name = "",
-        description = "SMPL-X model texture",
-        items = [ ("NONE", "None", ""), ("smplx_texture_f_2023.png", "Female (UV 2023)", ""), ("smplx_texture_m_2023.png", "Male (UV 2023)", ""), ("smplx_texture_f_alb.png", "Female (UV 2021)", ""), ("smplx_texture_m_alb.png", "Male (UV 2021)", ""), ("smplx_texture_rainbow.png", "Rainbow (UV 2021)", ""), ("UV_GRID", "UV Grid", ""), ("COLOR_GRID", "Color Grid", "") ]
+        description = "Model texture",
+        items = _texture_items,
     )
 
     smplx_corrective_poseshapes: BoolProperty(

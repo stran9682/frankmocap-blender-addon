@@ -6,13 +6,8 @@ from bpy.props import BoolProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 from mathutils import Quaternion
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    NUM_SMPLX_BODYJOINTS,
-    NUM_SMPLX_HANDJOINTS,
-    NUM_SMPLX_JOINTS,
-    SMPLX_JOINT_NAMES,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import get_active_model_spec
 from ..utils.pose import rodrigues_from_pose, set_pose_from_rodrigues
 from ..utils.shapekeys import smplx_ensure_valid_shapekey_slider_ranges
 
@@ -43,16 +38,20 @@ class SMPLXSetPoseshapes(bpy.types.Operator):
 
     # https://github.com/gulvarol/surreal/blob/master/datageneration/main_part1.py
     # Calculate weights of pose corrective blend shapes
-    # Input is pose of all 55 joints, output is weights for all joints except pelvis
+    # Input is the flat pose vector of all model joints; output is weights for all joints except pelvis
     def rodrigues_to_posecorrective_weight(self, pose):
-        joints_posecorrective = NUM_SMPLX_JOINTS
-        rod_rots = np.asarray(pose).reshape(joints_posecorrective, 3)
+        rod_rots = np.asarray(pose).reshape(-1, 3)
         mat_rots = [self.rodrigues_to_mat(rod_rot) for rod_rot in rod_rots]
         bshapes = np.concatenate([(mat_rot - np.eye(3)).ravel() for mat_rot in mat_rots[1:]])
         return(bshapes)
 
     def execute(self, context):
         obj = bpy.context.object
+
+        spec = get_active_model_spec(context)
+        if spec is None:
+            self.report({'WARNING'}, "No SMPL model active")
+            return {'CANCELLED'}
 
         # Get armature pose in rodrigues representation
         if obj.type == 'ARMATURE':
@@ -63,10 +62,10 @@ class SMPLXSetPoseshapes(bpy.types.Operator):
 
         smplx_ensure_valid_shapekey_slider_ranges(obj)
 
-        pose = [0.0] * (NUM_SMPLX_JOINTS * 3)
+        num_joints = len(spec.joint_names)
+        pose = [0.0] * (num_joints * 3)
 
-        for index in range(NUM_SMPLX_JOINTS):
-            joint_name = SMPLX_JOINT_NAMES[index]
+        for index, joint_name in enumerate(spec.joint_names):
             joint_pose = rodrigues_from_pose(armature, joint_name)
             pose[index*3 + 0] = joint_pose[0]
             pose[index*3 + 1] = joint_pose[1]
@@ -121,8 +120,10 @@ class SMPLXSetHandpose(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh or armature is active object
-            return ( ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')) or (context.object.type == 'ARMATURE'))
+            if not (((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')) or (context.object.type == 'ARMATURE')):
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and bool(spec.handposes_file)
         except: return False
 
     def execute(self, context):
@@ -132,8 +133,13 @@ class SMPLXSetHandpose(bpy.types.Operator):
         else:
             armature = obj
 
+        spec = get_active_model_spec(context)
+        if spec is None or not spec.handposes_file:
+            self.report({'WARNING'}, "No hand pose data for this model")
+            return {'CANCELLED'}
+
         if self.hand_poses is None:
-            data_path = ADDON_ROOT / "data" / "smplx_handposes.npz"
+            data_path = ADDON_ROOT / "data" / spec.handposes_file
             with np.load(data_path, allow_pickle=True) as data:
                 self.hand_poses = data["hand_poses"].item()
 
@@ -148,14 +154,16 @@ class SMPLXSetHandpose(bpy.types.Operator):
 
         hand_pose = np.concatenate( (left_hand_pose, right_hand_pose) ).reshape(-1, 3)
 
-        hand_joint_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
-        for index in range(2 * NUM_SMPLX_HANDJOINTS):
+        # Hand bones live at the end of joint_names (after pelvis + body + optional face).
+        num_hand_bones = 2 * spec.num_hand_joints
+        hand_joint_start_index = len(spec.joint_names) - num_hand_bones
+        for index in range(num_hand_bones):
             pose_rodrigues = hand_pose[index]
-            bone_name = SMPLX_JOINT_NAMES[index + hand_joint_start_index]
+            bone_name = spec.joint_names[index + hand_joint_start_index]
             set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
 
         # Update corrective poseshapes if used
-        if context.window_manager.smplx_tool.smplx_corrective_poseshapes:
+        if context.window_manager.smplx_tool.smplx_corrective_poseshapes and spec.has_corrective_poseshapes:
             bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
 
         return {'FINISHED'}
@@ -177,16 +185,20 @@ class SMPLXWritePose(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
 
+        spec = get_active_model_spec(context)
+        if spec is None:
+            self.report({'WARNING'}, "No SMPL model active")
+            return {'CANCELLED'}
+
         if obj.type == 'MESH':
             armature = obj.parent
         else:
             armature = obj
 
-        # Get armature pose in rodrigues representation
-        pose = [0.0] * (NUM_SMPLX_JOINTS * 3)
+        num_joints = len(spec.joint_names)
+        pose = [0.0] * (num_joints * 3)
 
-        for index in range(NUM_SMPLX_JOINTS):
-            joint_name = SMPLX_JOINT_NAMES[index]
+        for index, joint_name in enumerate(spec.joint_names):
             joint_pose = rodrigues_from_pose(armature, joint_name)
             pose[index*3 + 0] = joint_pose[0]
             pose[index*3 + 1] = joint_pose[1]
@@ -258,6 +270,11 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         obj = bpy.context.object
 
+        spec = get_active_model_spec(context)
+        if spec is None:
+            self.report({'WARNING'}, "No SMPL model active")
+            return {'CANCELLED'}
+
         if obj.type == 'MESH':
             armature = obj.parent
         else:
@@ -265,8 +282,8 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
             obj = armature.children[0]
             context.view_layer.objects.active = obj # mesh needs to be active object for recalculating joint locations
 
-        if self.hand_pose_relaxed is None:
-            data_path = ADDON_ROOT / "data" / "smplx_handposes.npz"
+        if self.hand_pose_relaxed is None and spec.handposes_file:
+            data_path = ADDON_ROOT / "data" / spec.handposes_file
             with np.load(data_path, allow_pickle=True) as data:
                 hand_poses = data["hand_poses"].item()
                 (left_hand_pose, right_hand_pose) = hand_poses["relaxed"]
@@ -278,8 +295,6 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
         global_orient = None
         body_pose = None
         jaw_pose = None
-        #leye_pose = None
-        #reye_pose = None
         left_hand_pose = None
         right_hand_pose = None
         betas = None
@@ -294,21 +309,20 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
                 global_orient = np.array(data["global_orient"]).reshape(3)
 
             body_pose = np.array(data["body_pose"])
-            if body_pose.shape != (1, NUM_SMPLX_BODYJOINTS * 3):
+            if body_pose.shape != (1, spec.num_body_joints * 3):
                 print(f"Invalid body pose dimensions: {body_pose.shape}")
-                body_data = None
                 return {'CANCELLED'}
 
-            body_pose = np.array(data["body_pose"]).reshape(NUM_SMPLX_BODYJOINTS, 3)
+            body_pose = body_pose.reshape(spec.num_body_joints, 3)
 
-            jaw_pose = np.array(data["jaw_pose"]).reshape(3)
-            #leye_pose = np.array(data["leye_pose"]).reshape(3)
-            #reye_pose = np.array(data["reye_pose"]).reshape(3)
+            if spec.has_expressions:
+                jaw_pose = np.array(data["jaw_pose"]).reshape(3)
+                expression = np.array(data["expression"]).reshape(-1).tolist()
+
             left_hand_pose = np.array(data["left_hand_pose"]).reshape(-1, 3)
             right_hand_pose = np.array(data["right_hand_pose"]).reshape(-1, 3)
 
             betas = np.array(data["betas"]).reshape(-1).tolist()
-            expression = np.array(data["expression"]).reshape(-1).tolist()
 
         # Update shape if selected
         if self.update_shape:
@@ -321,49 +335,48 @@ class SMPLXLoadPose(bpy.types.Operator, ImportHelper):
                 else:
                     print(f"ERROR: No key block for: {key_block_name}")
 
-            bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+            if spec.regressor_template is not None:
+                bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
         if global_orient is not None:
             set_pose_from_rodrigues(armature, "pelvis", global_orient)
 
-        for index in range(NUM_SMPLX_BODYJOINTS):
+        # Body pose starts with left_hip (joint_names[1])
+        for index in range(spec.num_body_joints):
             pose_rodrigues = body_pose[index]
-            bone_name = SMPLX_JOINT_NAMES[index + 1] # body pose starts with left_hip
+            bone_name = spec.joint_names[index + 1]
             set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
 
-        set_pose_from_rodrigues(armature, "jaw", jaw_pose)
+        if spec.has_expressions and jaw_pose is not None:
+            set_pose_from_rodrigues(armature, "jaw", jaw_pose)
 
-        # Left hand
-        start_name_index = 1 + NUM_SMPLX_BODYJOINTS + 3
-        for i in range(0, NUM_SMPLX_HANDJOINTS):
-            pose_rodrigues = left_hand_pose[i]
-            bone_name = SMPLX_JOINT_NAMES[start_name_index + i]
-            pose_relaxed_rodrigues = self.hand_pose_relaxed[i]
-            set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)
+        # Hand bones live at the end of joint_names: left hand first, then right hand.
+        hand_start = len(spec.joint_names) - 2 * spec.num_hand_joints
+        for i in range(spec.num_hand_joints):
+            bone_name = spec.joint_names[hand_start + i]
+            pose_relaxed_rodrigues = self.hand_pose_relaxed[i] if self.hand_pose_relaxed is not None else None
+            set_pose_from_rodrigues(armature, bone_name, left_hand_pose[i], pose_relaxed_rodrigues)
 
-        # Right hand
-        start_name_index = 1 + NUM_SMPLX_BODYJOINTS + 3 + NUM_SMPLX_HANDJOINTS
-        for i in range(0, NUM_SMPLX_HANDJOINTS):
-            pose_rodrigues = right_hand_pose[i]
-            bone_name = SMPLX_JOINT_NAMES[start_name_index + i]
-            pose_relaxed_rodrigues = self.hand_pose_relaxed[NUM_SMPLX_HANDJOINTS + i]
-            set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)
+        for i in range(spec.num_hand_joints):
+            bone_name = spec.joint_names[hand_start + spec.num_hand_joints + i]
+            pose_relaxed_rodrigues = self.hand_pose_relaxed[spec.num_hand_joints + i] if self.hand_pose_relaxed is not None else None
+            set_pose_from_rodrigues(armature, bone_name, right_hand_pose[i], pose_relaxed_rodrigues)
 
         if translation is not None:
-            # Set translation
             armature.location = (translation[0], -translation[2], translation[1])
 
         # Activate corrective poseshapes
-        bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
+        if spec.has_corrective_poseshapes:
+            bpy.ops.object.smplx_set_poseshapes('EXEC_DEFAULT')
 
-        # Set face expression
-        for index, exp in enumerate(expression):
-            key_block_name = f"Exp{index:03}"
+        if spec.has_expressions and expression is not None:
+            for index, exp in enumerate(expression):
+                key_block_name = f"Exp{index:03}"
 
-            if key_block_name in obj.data.shape_keys.key_blocks:
-                obj.data.shape_keys.key_blocks[key_block_name].value = exp
-            else:
-                print(f"ERROR: No key block for: {key_block_name}")
+                if key_block_name in obj.data.shape_keys.key_blocks:
+                    obj.data.shape_keys.key_blocks[key_block_name].value = exp
+                else:
+                    print(f"ERROR: No key block for: {key_block_name}")
 
         return {'FINISHED'}
 

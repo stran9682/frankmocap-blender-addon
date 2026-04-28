@@ -1,15 +1,13 @@
 import bpy
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    SMPLX_MODELFILE_300,
-    SMPLX_MODELFILE_LH_300,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import MODELS
 
-_BODY_MODELS = (
-    ("SMPL-X Locked Head (no head bun)", SMPLX_MODELFILE_LH_300),
-    ("SMPL-X v1.1 (head bun)", SMPLX_MODELFILE_300),
-)
+_VARIANT_LABELS = {
+    "locked_head": "Locked Head (no head bun)",
+    "v1_1": "v1.1 (head bun)",
+    "default": "",
+}
 
 
 class SMPLX_AP_Preferences(bpy.types.AddonPreferences):
@@ -28,11 +26,14 @@ class SMPLX_AP_Preferences(bpy.types.AddonPreferences):
         header.label(text="BODY MODEL")
         header.label(text="STATUS")
 
-        for display_name, filename in _BODY_MODELS:
-            row = col.split(factor=0.5, align=True)
-            row.label(text=display_name)
-            status = "Installed" if (data_dir / filename).is_file() else "Not installed"
-            row.label(text=status)
+        for spec in MODELS.values():
+            for variant_key, filename in spec.blend_files.items():
+                variant_label = _VARIANT_LABELS.get(variant_key, variant_key)
+                display_name = f"{spec.display_name} {variant_label}".strip()
+                row = col.split(factor=0.5, align=True)
+                row.label(text=display_name)
+                status = "Installed" if (data_dir / filename).is_file() else "Not installed"
+                row.label(text=status)
 
 
 classes = (SMPLX_AP_Preferences,)

@@ -51,14 +51,26 @@ SMPLX_TEXTURE_ITEMS = (
     ("smplx_texture_f_alb.png", "Female (UV 2021)", ""),
     ("smplx_texture_m_alb.png", "Male (UV 2021)", ""),
     ("smplx_texture_rainbow.png", "Rainbow (UV 2021)", ""),
-    ("UV_GRID", "Grid", ""),
-    ("COLOR_GRID", "Checker", ""),
+    ("UV_GRID", "UV Grid", ""),
+    ("COLOR_GRID", "Color Grid", ""),
 )
 
 SMPLH_TEXTURE_ITEMS = (
     ("NONE", "None", ""),
     ("UV_GRID", "Grid", ""),
     ("COLOR_GRID", "Checker", ""),
+)
+
+
+SMPLX_GENDER_ITEMS = (
+    ("female", "Female", ""),
+    ("male", "Male", ""),
+    ("neutral", "Neutral", ""),
+)
+
+SMPLH_GENDER_ITEMS = (
+    ("female", "Female", ""),
+    ("male", "Male", ""),
 )
 
 
@@ -78,6 +90,7 @@ class ModelSpec:
     has_uv_variants: bool
     has_textures: bool
     texture_items: tuple[tuple[str, str, str], ...]
+    gender_items: tuple[tuple[str, str, str], ...]
     has_corrective_poseshapes: bool
 
     blend_files: dict[str, str]
@@ -98,10 +111,11 @@ MODELS: dict[str, ModelSpec] = {
         has_uv_variants=True,
         has_textures=True,
         texture_items=SMPLX_TEXTURE_ITEMS,
+        gender_items=SMPLX_GENDER_ITEMS,
         has_corrective_poseshapes=True,
         blend_files={
             "locked_head": "smplx_model_lh_20230302.blend",
-            "v1_1_300": "smplx_model_20230302.blend",
+            "v1_1": "smplx_model_20230302.blend",
         },
     ),
     "smplh": ModelSpec(
@@ -118,6 +132,7 @@ MODELS: dict[str, ModelSpec] = {
         has_uv_variants=False,
         has_textures=True,
         texture_items=SMPLH_TEXTURE_ITEMS,
+        gender_items=SMPLH_GENDER_ITEMS,
         has_corrective_poseshapes=True,
         blend_files={"default": "smplh_model_20260428.blend"},
     ),

@@ -1,17 +1,14 @@
 import bpy
 import numpy as np
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    SMPLX_MODELFILE_300,
-    SMPLX_MODELFILE_LH_300,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import MODELS
 
 
 class SMPLXAddGender(bpy.types.Operator):
     bl_idname = "scene.smplx_add_gender"
     bl_label = "Add"
-    bl_description = ("Add SMPL-X model of selected gender to scene")
+    bl_description = ("Add body model of selected gender to scene")
     bl_options = {'REGISTER', 'UNDO'}
 
     uv_2023 = None
@@ -27,18 +24,20 @@ class SMPLXAddGender(bpy.types.Operator):
         except: return False
 
     def execute(self, context):
-        gender = context.window_manager.smplx_tool.smplx_gender
-        print("Adding gender: " + gender)
+        wm = context.window_manager
+        gender = wm.smplx_tool.smplx_gender
+        spec = MODELS[wm.smplx_tool.model_type]
 
-        path = ADDON_ROOT
+        print(f"Adding {spec.display_name} ({gender})")
 
-        if context.window_manager.smplx_tool.smplx_version == "locked_head":
-            model_file = SMPLX_MODELFILE_LH_300
+        if spec.id == "smplx":
+            variant = "locked_head" if wm.smplx_tool.smplx_version == "locked_head" else "v1_1"
         else:
-            model_file = SMPLX_MODELFILE_300
+            variant = "default"
 
-        objects_path = path / "data" / model_file / "Object"
-        object_name = "SMPLX-mesh-" + gender
+        model_file = spec.blend_files[variant]
+        objects_path = ADDON_ROOT / "data" / model_file / "Object"
+        object_name = spec.mesh_name_template.format(gender=gender)
 
         bpy.ops.wm.append(filename=object_name, directory=str(objects_path))
 
@@ -49,25 +48,26 @@ class SMPLXAddGender(bpy.types.Operator):
         bpy.data.objects[object_name].select_set(True)
         obj = bpy.context.active_object
 
-        # Set currently selected hand pose
-        bpy.ops.object.smplx_set_handpose('EXEC_DEFAULT')
+        obj["model_type"] = spec.id
 
-        # Set target UV if needed, default UV in .blend is UV_2021
-        uv_version = context.window_manager.smplx_tool.smplx_uv
-        print(f"UV map: {uv_version}")
-        obj["smplx_uv"] = uv_version # store UV version as custom property
+        if spec.handposes_file:
+            bpy.ops.object.smplx_set_handpose('EXEC_DEFAULT')
 
-        if uv_version == "UV_2023":
-            if self.uv_2023 is None:
-                uv_npz_path = ADDON_ROOT / "data" / "smplx_uv_2023.npz"
-                with np.load(uv_npz_path) as data:
-                    self.uv_2023 = data["uv_coordinates"]
+        if spec.has_uv_variants:
+            uv_version = wm.smplx_tool.smplx_uv
+            print(f"UV map: {uv_version}")
+            obj["smplx_uv"] = uv_version
 
-            # Write loaded UV coordinates to the UV map
-            uv_map = obj.data.uv_layers.active.data
-            for i, face in enumerate(obj.data.polygons):
-                for j, loop_index in enumerate(face.loop_indices):
-                    uv_map[loop_index].uv = self.uv_2023[i * len(face.loop_indices) + j]
+            if uv_version == "UV_2023":
+                if self.uv_2023 is None:
+                    uv_npz_path = ADDON_ROOT / "data" / "smplx_uv_2023.npz"
+                    with np.load(uv_npz_path) as data:
+                        self.uv_2023 = data["uv_coordinates"]
+
+                uv_map = obj.data.uv_layers.active.data
+                for i, face in enumerate(obj.data.polygons):
+                    for j, loop_index in enumerate(face.loop_indices):
+                        uv_map[loop_index].uv = self.uv_2023[i * len(face.loop_indices) + j]
 
         return {'FINISHED'}
 
