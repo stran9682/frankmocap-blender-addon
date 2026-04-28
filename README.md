@@ -2,7 +2,7 @@
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned meshes to your current Blender scene. Each imported SMPL-X mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression and pose correctives.
 
-+ Requirements: Blender 4.0+, tested with 4.5.8 and 5.0.1
++ Requirements: Blender 4.5+, tested with 4.5.8 and 5.1.1
 + Additional dependencies: None
 + Used SMPL-X models:
   + SMPL-X locked head (no head bun), this is the new default model
@@ -141,6 +141,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add Blender 5.0 support for FBX Unreal animation export
 + 20260410:
   + Add FBX export option to export only animation without mesh (default: off)
++ 20260423:
+  + Refactor legacy add-on code into subfolders and use new extension add-on definition introduced with Blender 4.2
+  + Show status of installed body models in preferences panel (Edit>Preferences>Add-ons>SMPL-X for Blender)
+  + Show cursor-based progress indicator when adding .npz animation
 
 ## Contact
 + smplx-blender@tue.mpg.de
