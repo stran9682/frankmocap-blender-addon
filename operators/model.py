@@ -3,9 +3,8 @@ import numpy as np
 
 from ..utils.constants import (
     ADDON_ROOT,
-    SMPLX_MODELFILE,
     SMPLX_MODELFILE_300,
-    SMPLX_MODELFILE_LH,
+    SMPLX_MODELFILE_LH_300,
 )
 
 
@@ -34,15 +33,9 @@ class SMPLXAddGender(bpy.types.Operator):
         path = ADDON_ROOT
 
         if context.window_manager.smplx_tool.smplx_version == "locked_head":
-            model_file = SMPLX_MODELFILE_LH
+            model_file = SMPLX_MODELFILE_LH_300
         else:
-            # v1.1
-            # Use 300 shape model if available
-            model_path = path / "data" / SMPLX_MODELFILE_300
-            if model_path.exists():
-                model_file = SMPLX_MODELFILE_300
-            else:
-                model_file = SMPLX_MODELFILE
+            model_file = SMPLX_MODELFILE_300
 
         objects_path = path / "data" / model_file / "Object"
         object_name = "SMPLX-mesh-" + gender

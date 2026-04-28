@@ -15,7 +15,7 @@ class PG_SMPLXProperties(PropertyGroup):
     smplx_version: EnumProperty(
         name = "Version",
         description = "SMPL-X version",
-        items = [ ("locked_head", "Locked Head", "Locked head model with removed head bun"), ("v1.1", "v1.1", "") ]
+        items = [ ("locked_head", "SMPL-X Locked Head", "SMPL-X locked head model without head bun"), ("v1.1", "SMPL-X v1.1", "SMPL-X v1.1 model with head bun") ]
     )
 
     smplx_gender: EnumProperty(

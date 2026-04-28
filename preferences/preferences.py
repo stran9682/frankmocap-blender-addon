@@ -3,11 +3,11 @@ import bpy
 from ..utils.constants import (
     ADDON_ROOT,
     SMPLX_MODELFILE_300,
-    SMPLX_MODELFILE_LH,
+    SMPLX_MODELFILE_LH_300,
 )
 
 _BODY_MODELS = (
-    ("SMPL-X Locked Head (no head bun)", SMPLX_MODELFILE_LH),
+    ("SMPL-X Locked Head (no head bun)", SMPLX_MODELFILE_LH_300),
     ("SMPL-X v1.1 (head bun)", SMPLX_MODELFILE_300),
 )
 

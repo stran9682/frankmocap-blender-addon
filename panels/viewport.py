@@ -4,8 +4,8 @@ from ..utils.constants import ADDON_VERSION
 
 
 class SMPLX_PT_Model(bpy.types.Panel):
-    bl_label = "SMPL-X Model"
-    bl_category = "SMPL-X"
+    bl_label = "SMPL Body Models"
+    bl_category = "SMPL Models"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -30,7 +30,7 @@ class SMPLX_PT_Model(bpy.types.Panel):
 
 class SMPLX_PT_Shape(bpy.types.Panel):
     bl_label = "Shape"
-    bl_category = "SMPL-X"
+    bl_category = "SMPL Models"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -62,7 +62,7 @@ class SMPLX_PT_Shape(bpy.types.Panel):
 
 class SMPLX_PT_Pose(bpy.types.Panel):
     bl_label = "Pose"
-    bl_category = "SMPL-X"
+    bl_category = "SMPL Models"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -89,7 +89,7 @@ class SMPLX_PT_Pose(bpy.types.Panel):
 
 class SMPLX_PT_Animation(bpy.types.Panel):
     bl_label = "Animation"
-    bl_category = "SMPL-X"
+    bl_category = "SMPL Models"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -101,7 +101,7 @@ class SMPLX_PT_Animation(bpy.types.Panel):
 
 class SMPLX_PT_Export(bpy.types.Panel):
     bl_label = "Export"
-    bl_category = "SMPL-X"
+    bl_category = "SMPL Models"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
