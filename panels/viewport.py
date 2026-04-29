@@ -16,8 +16,8 @@ class SMPLX_PT_Model(bpy.types.Panel):
         col = layout.column(align=True)
 
         # Add block — gated on the to-be-added model
-        add_spec = MODELS[wm.smplx_tool.model_type]
-        col.prop(wm.smplx_tool, "model_type")
+        add_spec = MODELS[wm.smplx_tool.body_model]
+        col.prop(wm.smplx_tool, "body_model")
         if "locked_head" in add_spec.blend_files:
             col.prop(wm.smplx_tool, "smplx_version")
         col.prop(wm.smplx_tool, "smplx_gender")
@@ -123,11 +123,6 @@ class SMPLX_PT_Animation(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-
-        spec = get_active_model_spec(context)
-        if spec is None:
-            col.label(text="No SMPL model selected")
-            return
 
         col.operator("object.smplx_add_animation")
 

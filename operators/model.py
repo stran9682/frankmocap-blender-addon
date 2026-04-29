@@ -26,7 +26,7 @@ class SMPLXAddGender(bpy.types.Operator):
     def execute(self, context):
         wm = context.window_manager
         gender = wm.smplx_tool.smplx_gender
-        spec = MODELS[wm.smplx_tool.model_type]
+        spec = MODELS[wm.smplx_tool.body_model]
 
         print(f"Adding {spec.display_name} ({gender})")
 
@@ -48,7 +48,7 @@ class SMPLXAddGender(bpy.types.Operator):
         bpy.data.objects[object_name].select_set(True)
         obj = bpy.context.active_object
 
-        obj["model_type"] = spec.id
+        obj["body_model"] = spec.id
 
         if spec.handposes_file:
             bpy.ops.object.smplx_set_handpose('EXEC_DEFAULT')

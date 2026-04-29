@@ -79,6 +79,7 @@ class ModelSpec:
     id: str
     display_name: str
     mesh_name_template: str
+    armature_name_template: str
     joint_names: tuple[str, ...]
     num_body_joints: int
     num_hand_joints: int
@@ -101,6 +102,7 @@ MODELS: dict[str, ModelSpec] = {
         id="smplx",
         display_name="SMPL-X",
         mesh_name_template="SMPLX-mesh-{gender}",
+        armature_name_template="SMPLX-{gender}",
         joint_names=_SMPLX_JOINT_NAMES,
         num_body_joints=21,
         num_hand_joints=15,
@@ -122,6 +124,7 @@ MODELS: dict[str, ModelSpec] = {
         id="smplh",
         display_name="SMPL+H",
         mesh_name_template="SMPLH-mesh-{gender}",
+        armature_name_template="SMPLH-{gender}",
         joint_names=_SMPLH_JOINT_NAMES,
         num_body_joints=21,
         num_hand_joints=15,
@@ -142,7 +145,7 @@ MODELS: dict[str, ModelSpec] = {
 def get_active_model_spec(context) -> ModelSpec | None:
     """Resolve the active mesh/armature to its ModelSpec.
 
-    Walks an armature to its child mesh; reads ``obj["model_type"]``;
+    Walks an armature to its child mesh; reads ``obj["body_model"]``;
     falls back to ``"smplx"`` when only the legacy ``smplx_gender`` custom
     property is present. Returns None if no addon mesh can be identified.
     """
@@ -159,9 +162,9 @@ def get_active_model_spec(context) -> ModelSpec | None:
     else:
         return None
 
-    model_type = mesh.get("model_type")
-    if model_type is not None:
-        return MODELS.get(model_type)
+    body_model = mesh.get("body_model")
+    if body_model is not None:
+        return MODELS.get(body_model)
 
     if "smplx_gender" in mesh:
         return MODELS.get("smplx")

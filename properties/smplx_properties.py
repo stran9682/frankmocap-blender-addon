@@ -13,19 +13,19 @@ def update_corrective_poseshapes(self, context):
 
 
 def _texture_items(self, context):
-    spec = get_active_model_spec(context) or MODELS[self.model_type]
+    spec = get_active_model_spec(context) or MODELS[self.body_model]
     return list(spec.texture_items)
 
 
 def _gender_items(self, context):
-    return list(MODELS[self.model_type].gender_items)
+    return list(MODELS[self.body_model].gender_items)
 
 
 class PG_SMPLXProperties(PropertyGroup):
 
-    model_type: EnumProperty(
+    body_model: EnumProperty(
         name = "Type",
-        description = "Body model family",
+        description = "Body model type",
         items = [ ("smplx", "SMPL-X", ""), ("smplh", "SMPL+H", "") ],
         default = "smplx",
     )
