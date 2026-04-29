@@ -145,6 +145,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Refactor legacy add-on code into subfolders and use new extension add-on definition introduced with Blender 4.2
   + Show status of installed body models in preferences panel (Edit>Preferences>Add-ons>SMPL-X for Blender)
   + Show cursor-based progress indicator when adding .npz animation
++ 20260429 (1.0.0):
+  + Add support for SMPL+H model (female/male)
+  + Hide UI panels which are not available for currently selected model object
+  + Removed deprecated SMPL-X v1.1 10-betas-to-joint regressors
 
 ## Contact
 + smplx-blender@tue.mpg.de

@@ -231,10 +231,20 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     bl_description = ("Update joint locations after shape changes")
     bl_options = {'REGISTER', 'UNDO'}
 
+    # Per-model regressor catalog: spec_id -> {"genders": (...), "betas": (...)}.
+    _variants = {
+        "smplx": {
+            "genders": ("female", "male", "neutral"),
+            "betas": ("300", "300_lh"),
+        },
+        "smplh": {
+            "genders": ("female", "male"),
+            "betas": ("16",),
+        },
+    }
+
+    # Cache: spec_id -> gender -> betas_key -> (betasJ_regr, template_J)
     j_regressor = {}
-    j_regressor["female"] = { "10": None, "300": None, "300_lh": None }
-    j_regressor["male"] = { "10": None, "300": None, "300_lh": None }
-    j_regressor["neutral"] = { "10": None, "300": None, "300_lh": None }
 
     @classmethod
     def poll(cls, context):
@@ -245,20 +255,21 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
             return spec is not None and spec.regressor_template is not None
         except: return False
 
-    def load_regressor(self, gender, betas):
+    def load_regressor(self, spec, gender, betas_key):
         prefix = ""
-        if betas == "10":
-            suffix = ""
-        elif betas == "300":
-            suffix = "_300"
-        elif betas == "300_lh":
-            suffix = "_300"
-            prefix = "lh_"
-        else:
-            print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas}]")
-            return (None, None)
+        suffix = ""
+        if spec.id == "smplx":
+            if betas_key == "300":
+                suffix = "_300"
+            elif betas_key == "300_lh":
+                suffix = "_300"
+                prefix = "lh_"
+            else:
+                print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas_key}]")
+                return (None, None)
 
-        regressor_path = ADDON_ROOT / "data" / f"smplx_betas_to_joints_{prefix}{gender}{suffix}.json"
+        filename = spec.regressor_template.format(prefix=prefix, gender=gender, suffix=suffix)
+        regressor_path = ADDON_ROOT / "data" / filename
         with open(regressor_path) as f:
             data = json.load(f)
             return (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
@@ -272,6 +283,11 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
             self.report({'WARNING'}, "Joint regressor not available for this model")
             return {'CANCELLED'}
 
+        variants = self._variants.get(spec.id)
+        if variants is None:
+            self.report({'WARNING'}, f"No regressor variants registered for model '{spec.id}'")
+            return {'CANCELLED'}
+
         # Get beta shapes
         betas = []
         for key_block in obj.data.shape_keys.key_blocks:
@@ -280,17 +296,24 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         num_betas = len(betas)
         betas = np.array(betas)
 
-        # Cache regressor files on first call
-        for target_betas in ["10", "300", "300_lh"]:
-            for gender in ["female", "male", "neutral"]:
-                if self.j_regressor[gender][target_betas] is None:
-                    self.j_regressor[gender][target_betas] = self.load_regressor(gender, target_betas)
+        # Cache regressor files for the active model on first use
+        cache = self.j_regressor.setdefault(spec.id, {})
+        for gender in variants["genders"]:
+            gender_cache = cache.setdefault(gender, {})
+            for betas_key in variants["betas"]:
+                if gender_cache.get(betas_key) is None:
+                    gender_cache[betas_key] = self.load_regressor(spec, gender, betas_key)
 
         key = f"{num_betas}"
-        if obj["smplx_version"] == "locked_head":
+        if spec.id == "smplx" and obj.get("smplx_version") == "locked_head":
             key += "_lh"
-        gender = obj["smplx_gender"]
-        (betas_to_joints, template_j) = self.j_regressor[gender][key]
+        gender = obj.get(f"{spec.id}_gender")
+        regressor = cache.get(gender, {}).get(key)
+        if regressor is None or regressor[0] is None:
+            self.report({'WARNING'}, f"No joint regressor for gender '{gender}' with {num_betas} betas")
+            return {'CANCELLED'}
+
+        (betas_to_joints, template_j) = regressor
         joint_locations = betas_to_joints @ betas + template_j
 
         # Set new bone joint locations
