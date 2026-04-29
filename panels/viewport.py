@@ -4,6 +4,17 @@ from ..utils.constants import ADDON_VERSION
 from ..utils.model_spec import MODELS, get_active_model_spec
 
 
+def _active_has_shape_keys(context) -> bool:
+    obj = getattr(context, "object", None)
+    if obj is None:
+        return False
+    if obj.type == "ARMATURE":
+        obj = next((c for c in obj.children if c.type == "MESH"), None)
+    if obj is None or obj.type != "MESH" or obj.data.shape_keys is None:
+        return False
+    return any(kb.name.startswith("Shape") for kb in obj.data.shape_keys.key_blocks)
+
+
 class SMPLX_PT_Model(bpy.types.Panel):
     bl_label = "SMPL Body Models"
     bl_category = "SMPL Models"
@@ -52,27 +63,29 @@ class SMPLX_PT_Shape(bpy.types.Panel):
             return
 
         wm = context.window_manager
+        has_shape_keys = _active_has_shape_keys(context)
 
-        if spec.has_measurements_to_betas:
+        if has_shape_keys and spec.has_measurements_to_betas:
             col.prop(wm.smplx_tool, "smplx_height")
             col.prop(wm.smplx_tool, "smplx_weight")
             col.operator("object.smplx_measurements_to_shape")
             col.separator()
 
-        row = col.row(align=True)
-        split = row.split(factor=0.75, align=True)
-        split.operator("object.smplx_random_shape")
-        split.operator("object.smplx_reset_shape")
-        col.separator()
-
-        col.operator("object.smplx_snap_ground_plane")
-        col.separator()
-
-        if spec.regressor_template is not None:
-            col.operator("object.smplx_update_joint_locations")
+        if has_shape_keys:
+            row = col.row(align=True)
+            split = row.split(factor=0.75, align=True)
+            split.operator("object.smplx_random_shape")
+            split.operator("object.smplx_reset_shape")
             col.separator()
 
-        if spec.has_expressions:
+        col.operator("object.smplx_snap_ground_plane")
+
+        if has_shape_keys and spec.regressor_template is not None:
+            col.separator()
+            col.operator("object.smplx_update_joint_locations")
+
+        if has_shape_keys and spec.has_expressions:
+            col.separator()
             row = col.row(align=True)
             split = row.split(factor=0.75, align=True)
             split.operator("object.smplx_random_expression_shape")
