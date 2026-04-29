@@ -1,11 +1,10 @@
 import bpy
 
-from ..utils.constants import ADDON_ROOT
-from ..utils.model_spec import MODELS
+from ..utils.model_spec import MODELS, is_variant_installed
 
 _VARIANT_LABELS = {
     "locked_head": "Locked Head (no head bun)",
-    "v1_1": "v1.1 (head bun)",
+    "v1.1": "v1.1 (head bun)",
     "default": "",
 }
 
@@ -19,7 +18,6 @@ class SMPLX_AP_Preferences(bpy.types.AddonPreferences):
         layout = self.layout
         layout.label(text="Installed SMPL-family body models:")
 
-        data_dir = ADDON_ROOT / "data"
         col = layout.column(align=True)
 
         header = col.split(factor=0.5, align=True)
@@ -27,12 +25,12 @@ class SMPLX_AP_Preferences(bpy.types.AddonPreferences):
         header.label(text="STATUS")
 
         for spec in MODELS.values():
-            for variant_key, filename in spec.blend_files.items():
+            for variant_key in spec.blend_files:
                 variant_label = _VARIANT_LABELS.get(variant_key, variant_key)
                 display_name = f"{spec.display_name} {variant_label}".strip()
                 row = col.split(factor=0.5, align=True)
                 row.label(text=display_name)
-                status = "Installed" if (data_dir / filename).is_file() else "Not installed"
+                status = "Installed" if is_variant_installed(spec, variant_key) else "Not installed"
                 row.label(text=status)
 
 

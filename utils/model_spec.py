@@ -8,6 +8,8 @@ rather than a code change.
 
 from dataclasses import dataclass
 
+from .constants import ADDON_ROOT
+
 _SMPLX_JOINT_NAMES: tuple[str, ...] = (
     "pelvis", "left_hip", "right_hip", "spine1", "left_knee", "right_knee",
     "spine2", "left_ankle", "right_ankle", "spine3", "left_foot", "right_foot",
@@ -117,7 +119,7 @@ MODELS: dict[str, ModelSpec] = {
         has_corrective_poseshapes=True,
         blend_files={
             "locked_head": "smplx_model_lh_20230302.blend",
-            "v1_1": "smplx_model_20230302.blend",
+            "v1.1": "smplx_model_20230302.blend",
         },
     ),
     "smplh": ModelSpec(
@@ -170,3 +172,18 @@ def get_active_model_spec(context) -> ModelSpec | None:
         return MODELS.get("smplx")
 
     return None
+
+
+def resolve_variant_key(spec: ModelSpec, wm_tool) -> str:
+    """Return the blend_files key for the model the user is about to add."""
+    if spec.id == "smplx":
+        return wm_tool.smplx_version
+    return "default"
+
+
+def is_variant_installed(spec: ModelSpec, variant_key: str) -> bool:
+    """Check whether the .blend file for the given variant exists in data/."""
+    filename = spec.blend_files.get(variant_key)
+    if filename is None:
+        return False
+    return (ADDON_ROOT / "data" / filename).is_file()

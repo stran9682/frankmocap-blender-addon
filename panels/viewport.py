@@ -1,7 +1,7 @@
 import bpy
 
 from ..utils.constants import ADDON_VERSION
-from ..utils.model_spec import MODELS, get_active_model_spec
+from ..utils.model_spec import MODELS, get_active_model_spec, is_variant_installed, resolve_variant_key
 
 
 def _active_has_shape_keys(context) -> bool:
@@ -34,7 +34,14 @@ class SMPLX_PT_Model(bpy.types.Panel):
         col.prop(wm.smplx_tool, "smplx_gender")
         if add_spec.has_uv_variants:
             col.prop(wm.smplx_tool, "smplx_uv")
-        col.operator("scene.smplx_add_gender", text="Add")
+
+        variant_key = resolve_variant_key(add_spec, wm.smplx_tool)
+        installed = is_variant_installed(add_spec, variant_key)
+        row = col.row()
+        row.enabled = installed
+        row.operator("scene.smplx_add_gender", text="Add")
+        if not installed:
+            col.label(text="Body model not installed", icon='ERROR')
 
         # Texture block — gated on the active model
         active_spec = get_active_model_spec(context)

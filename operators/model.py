@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 
 from ..utils.constants import ADDON_ROOT
-from ..utils.model_spec import MODELS
+from ..utils.model_spec import MODELS, is_variant_installed, resolve_variant_key
 
 
 class SMPLXAddGender(bpy.types.Operator):
@@ -27,13 +27,13 @@ class SMPLXAddGender(bpy.types.Operator):
         wm = context.window_manager
         gender = wm.smplx_tool.smplx_gender
         spec = MODELS[wm.smplx_tool.body_model]
+        variant = resolve_variant_key(spec, wm.smplx_tool)
+
+        if not is_variant_installed(spec, variant):
+            self.report({'ERROR'}, f"Body model file not installed: {spec.blend_files.get(variant, '?')}")
+            return {'CANCELLED'}
 
         print(f"Adding {spec.display_name} ({gender})")
-
-        if spec.id == "smplx":
-            variant = "locked_head" if wm.smplx_tool.smplx_version == "locked_head" else "v1_1"
-        else:
-            variant = "default"
 
         model_file = spec.blend_files[variant]
         objects_path = ADDON_ROOT / "data" / model_file / "Object"

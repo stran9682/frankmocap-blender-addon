@@ -149,6 +149,10 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) skinned mes
   + Add support for SMPL+H model (female/male)
   + Hide UI panels which are not available for currently selected model object
   + Removed deprecated SMPL-X v1.1 10-betas-to-joint regressors
+  + Only allow to add body model to scene if the model is available in data/ folder
+    + SMPL-X locked head default model will be included in official add-on distribution
+    + SMPL-X v1.1 is now optional DLC install available at https://smpl-x.is.tue.mpg.de/
+    + SMPL+H is optional DLC install available at https://mano.is.tue.mpg.de/
 
 ## Contact
 + smplx-blender@tue.mpg.de
