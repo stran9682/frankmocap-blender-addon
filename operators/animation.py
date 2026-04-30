@@ -7,18 +7,15 @@ from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 from mathutils import Quaternion, Vector
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    NUM_SMPLX_BODYJOINTS,
-    SMPLX_JOINT_NAMES,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import MODELS
 from ..utils.pose import set_pose_from_rodrigues
 
 
 class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
     bl_idname = "object.smplx_add_animation"
     bl_label = "Add Animation"
-    bl_description = ("Load AMASS/SMPL-X animation and create animated SMPL-X body")
+    bl_description = ("Load AMASS/SMPL-X animation and create animated SMPL-X/SMPL+H body")
     bl_options = {'REGISTER', 'UNDO'}
 
     filter_glob: StringProperty(
@@ -103,10 +100,18 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                 self.report({"ERROR"}, f"Mocap framerate ({mocap_framerate}) below target framerate ({target_framerate})")
                 return {"CANCELLED"}
 
+        # Identify model family from the joint count packed into poses.
+        num_pose_joints = poses.shape[1] // 3
+        spec = next((m for m in MODELS.values() if len(m.joint_names) == num_pose_joints), None)
+        if spec is None:
+            self.report({"ERROR"}, f"Unsupported joint count {num_pose_joints} in animation file")
+            return {"CANCELLED"}
+
         if (context.active_object is not None):
             bpy.ops.object.mode_set(mode='OBJECT')
 
         # Add gender specific model
+        context.window_manager.smplx_tool.body_model = spec.id
         context.window_manager.smplx_tool.smplx_gender = gender
         context.window_manager.smplx_tool.smplx_handpose = "flat"
         bpy.ops.scene.smplx_add_gender()
@@ -186,7 +191,7 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                 current_frame = index + 1
                 current_pose = poses[frame].reshape(-1, 3)
                 current_trans = trans[frame]
-                for bone_index, bone_name in enumerate(SMPLX_JOINT_NAMES):
+                for bone_index, bone_name in enumerate(spec.joint_names):
                     if bone_name == "pelvis":
                         # Keyframe pelvis location
                         if self.rest_position == "GROUNDED":
@@ -207,7 +212,7 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
                             set_pose_from_rodrigues(armature, bone_name, pose_rodrigues)
                         else:
                             # Finger rotations are relative to relaxed hand pose
-                            hand_start_index = 1 + NUM_SMPLX_BODYJOINTS + 3
+                            hand_start_index = len(spec.joint_names) - 2 * spec.num_hand_joints
                             relaxed_hand_joint_index = bone_index - hand_start_index
                             pose_relaxed_rodrigues = self.hand_pose_relaxed[relaxed_hand_joint_index]
                             set_pose_from_rodrigues(armature, bone_name, pose_rodrigues, pose_relaxed_rodrigues)

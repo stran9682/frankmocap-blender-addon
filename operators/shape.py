@@ -4,11 +4,8 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-from ..utils.constants import (
-    ADDON_ROOT,
-    NUM_SMPLX_JOINTS,
-    SMPLX_JOINT_NAMES,
-)
+from ..utils.constants import ADDON_ROOT
+from ..utils.model_spec import get_active_model_spec
 from ..utils.shapekeys import smplx_ensure_valid_shapekey_slider_ranges
 
 
@@ -26,22 +23,31 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
+            if not ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')):
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_measurements_to_betas
         except: return False
 
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        for gender in ["female", "male", "neutral"]:
-            if self.betas_regressor[gender] is None:
-                regressor_path = ADDON_ROOT / "data" / f"smplx_measurements_to_betas_{gender}.json"
+        gender = obj.get("smplx_gender")
+        if gender is None:
+            self.report({'WARNING'}, "Measurements-to-Shape is not available for the current body model")
+            return {'CANCELLED'}
+
+        if self.betas_regressor.get(gender) is None:
+            regressor_path = ADDON_ROOT / "data" / f"smplx_measurements_to_betas_{gender}.json"
+            try:
                 with open(regressor_path) as f:
                     data = json.load(f)
-                    self.betas_regressor[gender] = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+            except FileNotFoundError as e:
+                self.report({'ERROR'}, f"Measurements regressor file not found: {e.filename}")
+                return {'CANCELLED'}
+            self.betas_regressor[gender] = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
 
-        gender = obj["smplx_gender"]
         (A, B) = self.betas_regressor[gender]
 
         # Calculate beta values from measurements
@@ -100,7 +106,9 @@ class SMPLXRandomShape(bpy.types.Operator):
                 if randomized_betas >= 16:
                     break
 
-        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+        spec = get_active_model_spec(context)
+        if spec and spec.regressor_template is not None:
+            bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
         return {'FINISHED'}
 
@@ -125,7 +133,9 @@ class SMPLXResetShape(bpy.types.Operator):
             if key_block.name.startswith("Shape"):
                 key_block.value = 0.0
 
-        bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
+        spec = get_active_model_spec(context)
+        if spec and spec.regressor_template is not None:
+            bpy.ops.object.smplx_update_joint_locations('EXEC_DEFAULT')
 
         return {'FINISHED'}
 
@@ -139,8 +149,10 @@ class SMPLXRandomExpressionShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return context.object.type == 'MESH'
+            if context.object.type != 'MESH':
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_expressions
         except: return False
 
     def execute(self, context):
@@ -163,8 +175,10 @@ class SMPLXResetExpressionShape(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return context.object.type == 'MESH'
+            if context.object.type != 'MESH':
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.has_expressions
         except: return False
 
     def execute(self, context):
@@ -224,32 +238,45 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     bl_description = ("Update joint locations after shape changes")
     bl_options = {'REGISTER', 'UNDO'}
 
+    # Per-model regressor catalog: spec_id -> {"genders": (...), "betas": (...)}.
+    _variants = {
+        "smplx": {
+            "genders": ("female", "male", "neutral"),
+            "betas": ("300", "300_lh"),
+        },
+        "smplh": {
+            "genders": ("female", "male"),
+            "betas": ("16",),
+        },
+    }
+
+    # Cache: spec_id -> gender -> betas_key -> (betasJ_regr, template_J)
     j_regressor = {}
-    j_regressor["female"] = { "10": None, "300": None, "300_lh": None }
-    j_regressor["male"] = { "10": None, "300": None, "300_lh": None }
-    j_regressor["neutral"] = { "10": None, "300": None, "300_lh": None }
 
     @classmethod
     def poll(cls, context):
         try:
-            # Enable button only if mesh is active object
-            return ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE'))
+            if not ((context.object.type == 'MESH') and (context.object.parent.type == 'ARMATURE')):
+                return False
+            spec = get_active_model_spec(context)
+            return spec is not None and spec.regressor_template is not None
         except: return False
 
-    def load_regressor(self, gender, betas):
+    def load_regressor(self, spec, gender, betas_key):
         prefix = ""
-        if betas == "10":
-            suffix = ""
-        elif betas == "300":
-            suffix = "_300"
-        elif betas == "300_lh":
-            suffix = "_300"
-            prefix = "lh_"
-        else:
-            print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas}]")
-            return (None, None)
+        suffix = ""
+        if spec.id == "smplx":
+            if betas_key == "300":
+                suffix = "_300"
+            elif betas_key == "300_lh":
+                suffix = "_300"
+                prefix = "lh_"
+            else:
+                print(f"ERROR: No betas-to-joints regressor for desired beta shapes [{betas_key}]")
+                return (None, None)
 
-        regressor_path = ADDON_ROOT / "data" / f"smplx_betas_to_joints_{prefix}{gender}{suffix}.json"
+        filename = spec.regressor_template.format(prefix=prefix, gender=gender, suffix=suffix)
+        regressor_path = ADDON_ROOT / "data" / filename
         with open(regressor_path) as f:
             data = json.load(f)
             return (np.asarray(data["betasJ_regr"]), np.asarray(data["template_J"]))
@@ -257,6 +284,16 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
+
+        spec = get_active_model_spec(context)
+        if spec is None or spec.regressor_template is None:
+            self.report({'WARNING'}, "Joint regressor not available for this model")
+            return {'CANCELLED'}
+
+        variants = self._variants.get(spec.id)
+        if variants is None:
+            self.report({'WARNING'}, f"No regressor variants registered for model '{spec.id}'")
+            return {'CANCELLED'}
 
         # Get beta shapes
         betas = []
@@ -266,17 +303,31 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         num_betas = len(betas)
         betas = np.array(betas)
 
-        # Cache regressor files on first call
-        for target_betas in ["10", "300", "300_lh"]:
-            for gender in ["female", "male", "neutral"]:
-                if self.j_regressor[gender][target_betas] is None:
-                    self.j_regressor[gender][target_betas] = self.load_regressor(gender, target_betas)
-
         key = f"{num_betas}"
-        if obj["smplx_version"] == "locked_head":
+        if spec.id == "smplx" and obj.get("smplx_version") == "locked_head":
             key += "_lh"
-        gender = obj["smplx_gender"]
-        (betas_to_joints, template_j) = self.j_regressor[gender][key]
+        gender = obj.get(f"{spec.id}_gender")
+
+        if gender not in variants["genders"] or key not in variants["betas"]:
+            self.report({'WARNING'}, f"No joint regressor for gender '{gender}' with {num_betas} betas")
+            return {'CANCELLED'}
+
+        # Lazily load and cache only the specific regressor we need.
+        # Eager loading would fail when DLC variants (e.g. SMPL-X v1.1) are not installed.
+        gender_cache = self.j_regressor.setdefault(spec.id, {}).setdefault(gender, {})
+        if gender_cache.get(key) is None:
+            try:
+                gender_cache[key] = self.load_regressor(spec, gender, key)
+            except FileNotFoundError as e:
+                self.report({'ERROR'}, f"Joint regressor file not found: {e.filename}")
+                return {'CANCELLED'}
+
+        regressor = gender_cache[key]
+        if regressor is None or regressor[0] is None:
+            self.report({'WARNING'}, f"No joint regressor for gender '{gender}' with {num_betas} betas")
+            return {'CANCELLED'}
+
+        (betas_to_joints, template_j) = regressor
         joint_locations = betas_to_joints @ betas + template_j
 
         # Set new bone joint locations
@@ -284,14 +335,14 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         bpy.context.view_layer.objects.active = armature
         bpy.ops.object.mode_set(mode='EDIT')
 
-        for index in range(NUM_SMPLX_JOINTS):
-            bone = armature.data.edit_bones[SMPLX_JOINT_NAMES[index]]
+        for index, bone_name in enumerate(spec.joint_names):
+            bone = armature.data.edit_bones[bone_name]
             bone.head = (0.0, 0.0, 0.0)
             bone.tail = (0.0, 0.0, 0.1)
 
-            # Convert SMPL-X joint locations to Blender joint locations
-            joint_location_smplx = joint_locations[index]
-            bone_start = Vector( (joint_location_smplx[0], -joint_location_smplx[2], joint_location_smplx[1]) )
+            # Convert SMPL-family joint locations to Blender joint locations
+            joint_location = joint_locations[index]
+            bone_start = Vector( (joint_location[0], -joint_location[2], joint_location[1]) )
             bone.translate(bone_start)
 
         bpy.ops.object.mode_set(mode='OBJECT')

@@ -6,7 +6,7 @@ from bpy.props import BoolProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper
 from mathutils import Vector
 
-from ..utils.constants import NUM_SMPLX_JOINTS
+from ..utils.model_spec import get_active_model_spec
 
 
 class SMPLXExportAlembic(bpy.types.Operator, ExportHelper):
@@ -74,6 +74,11 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
     def execute(self, context):
 
         obj = bpy.context.object
+
+        spec = get_active_model_spec(context)
+        if spec is None:
+            self.report({'WARNING'}, "No SMPL model active")
+            return {'CANCELLED'}
 
         armature_original = obj.parent
         skinned_mesh_original = obj
@@ -164,8 +169,8 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
                 bpy.context.object.active_shape_key_index = current_shape_key_index
 
                 if bpy.context.object.active_shape_key is not None:
-                    if (bpy.context.object.active_shape_key.name.startswith('Shape') or
-                        bpy.context.object.active_shape_key.name.startswith('Exp')):
+                    name = bpy.context.object.active_shape_key.name
+                    if name.startswith("Shape") or name.startswith("Exp"):
                         bpy.ops.object.shape_key_remove(all=False)
                     else:
                         current_shape_key_index = current_shape_key_index + 1
@@ -217,17 +222,19 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         skinned_mesh.select_set(True)
 
         # Rename armature and skinned mesh to not contain Blender copy suffix
-        gender = skinned_mesh_original["smplx_gender"]
+        gender = skinned_mesh_original[f"{spec.id}_gender"]
 
-        target_mesh_name = "SMPLX-mesh-%s" % gender
-        target_armature_name = "SMPLX-%s" % gender
+        target_mesh_name = spec.mesh_name_template.format(gender=gender)
+        target_armature_name = spec.armature_name_template.format(gender=gender)
+        temp_mesh_name = f"{spec.id}-temp-mesh"
+        temp_armature_name = f"{spec.id}-temp-armature"
 
         if target_mesh_name in bpy.data.objects:
-            bpy.data.objects[target_mesh_name].name = "SMPLX-temp-mesh"
+            bpy.data.objects[target_mesh_name].name = temp_mesh_name
         skinned_mesh.name = target_mesh_name
 
         if target_armature_name in bpy.data.objects:
-            bpy.data.objects[target_armature_name].name = "SMPLX-temp-armature"
+            bpy.data.objects[target_armature_name].name = temp_armature_name
         armature.name = target_armature_name
 
         object_types = {'ARMATURE', 'MESH', 'OTHER'}
@@ -259,11 +266,11 @@ class SMPLXExportFBX(bpy.types.Operator, ExportHelper):
         skinned_mesh_original.select_set(True)
         bpy.context.view_layer.objects.active = skinned_mesh_original
 
-        if "SMPLX-temp-mesh" in bpy.data.objects:
-            bpy.data.objects["SMPLX-temp-mesh"].name = target_mesh_name
+        if temp_mesh_name in bpy.data.objects:
+            bpy.data.objects[temp_mesh_name].name = target_mesh_name
 
-        if "SMPLX-temp-armature" in bpy.data.objects:
-            bpy.data.objects["SMPLX-temp-armature"].name = target_armature_name
+        if temp_armature_name in bpy.data.objects:
+            bpy.data.objects[temp_armature_name].name = target_armature_name
 
         return {'FINISHED'}
 
@@ -289,6 +296,11 @@ class SMPLXExportShape(bpy.types.Operator, ExportHelper):
         obj = bpy.context.object
         armature = obj.parent
 
+        spec = get_active_model_spec(context)
+        if spec is None:
+            self.report({'WARNING'}, "No SMPL model active")
+            return {'CANCELLED'}
+
         betas = []
         for index in range(300):
             key_block_name = f"Shape{index:03}"
@@ -297,12 +309,13 @@ class SMPLXExportShape(bpy.types.Operator, ExportHelper):
                 beta = obj.data.shape_keys.key_blocks[key_block_name].value
                 betas.append(beta)
 
+        version = obj.get("smplx_version")
         data = {}
-        data["gender"] = obj["smplx_gender"]
+        data["gender"] = obj[f"{spec.id}_gender"]
         data["mocap_frame_rate"] = 30
-        data["model"] = "smplx_" + obj["smplx_version"]
+        data["model"] = f"{spec.id}_{version}" if version else spec.id
         data["betas"] = betas
-        data["poses"] = [ [0.0] * 3 * NUM_SMPLX_JOINTS ]
+        data["poses"] = [ [0.0] * 3 * len(spec.joint_names) ]
         data["trans"] = [ [0.0, 0.0, 0.0] ]
         data["info"] = "Shape only,default pose"
 
