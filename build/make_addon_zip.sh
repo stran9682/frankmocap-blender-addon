@@ -13,6 +13,7 @@ version=$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' smplx_b
 common_files=(
   smplx_blender_addon/blender_manifest.toml
   smplx_blender_addon/__init__.py
+  smplx_blender_addon/handlers
   smplx_blender_addon/operators
   smplx_blender_addon/panels
   smplx_blender_addon/preferences

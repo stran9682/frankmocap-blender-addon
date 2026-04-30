@@ -147,6 +147,18 @@ MODELS: dict[str, ModelSpec] = {
 }
 
 
+def _resolve_active_mesh(context):
+    """Walk the active object to its SMPL mesh, or None if nothing matches."""
+    obj = getattr(context, "object", None) or getattr(context, "active_object", None)
+    if obj is None:
+        return None
+    if obj.type == "ARMATURE":
+        return next((c for c in obj.children if c.type == "MESH"), None)
+    if obj.type == "MESH":
+        return obj
+    return None
+
+
 def get_active_model_spec(context) -> ModelSpec | None:
     """Resolve the active mesh/armature to its ModelSpec.
 
@@ -154,17 +166,8 @@ def get_active_model_spec(context) -> ModelSpec | None:
     falls back to ``"smplx"`` when only the legacy ``smplx_gender`` custom
     property is present. Returns None if no addon mesh can be identified.
     """
-    obj = getattr(context, "object", None) or getattr(context, "active_object", None)
-    if obj is None:
-        return None
-
-    if obj.type == "ARMATURE":
-        mesh = next((c for c in obj.children if c.type == "MESH"), None)
-        if mesh is None:
-            return None
-    elif obj.type == "MESH":
-        mesh = obj
-    else:
+    mesh = _resolve_active_mesh(context)
+    if mesh is None:
         return None
 
     body_model = mesh.get("body_model")
@@ -175,6 +178,42 @@ def get_active_model_spec(context) -> ModelSpec | None:
         return MODELS.get("smplx")
 
     return None
+
+
+def sync_tool_to_active(context) -> None:
+    """Mirror the active SMPL mesh's settings onto wm.smplx_tool 'add' controls.
+
+    Called on selection change so SMPLX_PT_Model reflects the active model
+    (e.g. SMPL+H selection hides smplx_version / smplx_uv rows). No-op if no
+    SMPL mesh is active or window_manager has no smplx_tool yet.
+    """
+    spec = get_active_model_spec(context)
+    if spec is None:
+        return
+    mesh = _resolve_active_mesh(context)
+    if mesh is None:
+        return
+
+    wm = getattr(context, "window_manager", None)
+    tool = getattr(wm, "smplx_tool", None) if wm is not None else None
+    if tool is None:
+        return
+
+    tool.body_model = spec.id
+
+    if spec.id == "smplx":
+        version = mesh.get("smplx_version")
+        if version in ("locked_head", "v1.1"):
+            tool.smplx_version = version
+        uv = mesh.get("smplx_uv")
+        if uv in ("UV_2023", "UV_2021"):
+            tool.smplx_uv = uv
+
+    gender = mesh.get(f"{spec.id}_gender")
+    if gender is None:
+        gender = mesh.get("smplx_gender")
+    if gender is not None and gender in {item[0] for item in spec.gender_items}:
+        tool.smplx_gender = gender
 
 
 def resolve_variant_key(spec: ModelSpec, wm_tool) -> str:
