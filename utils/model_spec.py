@@ -87,6 +87,7 @@ class ModelSpec:
     num_hand_joints: int
     handposes_file: str
     regressor_template: str | None
+    source_url: str
 
     has_expressions: bool
     has_measurements_to_betas: bool
@@ -110,6 +111,7 @@ MODELS: dict[str, ModelSpec] = {
         num_hand_joints=15,
         handposes_file="smplx_handposes.npz",
         regressor_template="smplx_betas_to_joints_{prefix}{gender}{suffix}.json",
+        source_url="https://smpl-x.is.tue.mpg.de/",
         has_expressions=True,
         has_measurements_to_betas=True,
         has_uv_variants=True,
@@ -132,6 +134,7 @@ MODELS: dict[str, ModelSpec] = {
         num_hand_joints=15,
         handposes_file="smplx_handposes.npz",
         regressor_template="smplh_betas_to_joints_{gender}_16.json",
+        source_url="https://mano.is.tue.mpg.de/",
         has_expressions=False,
         has_measurements_to_betas=False,
         has_uv_variants=False,
