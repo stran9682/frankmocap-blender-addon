@@ -33,14 +33,21 @@ class SMPLXMeasurementsToShape(bpy.types.Operator):
         obj = bpy.context.object
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        for gender in ["female", "male", "neutral"]:
-            if self.betas_regressor[gender] is None:
-                regressor_path = ADDON_ROOT / "data" / f"smplx_measurements_to_betas_{gender}.json"
+        gender = obj.get("smplx_gender")
+        if gender is None:
+            self.report({'WARNING'}, "Measurements-to-Shape is not available for the current body model")
+            return {'CANCELLED'}
+
+        if self.betas_regressor.get(gender) is None:
+            regressor_path = ADDON_ROOT / "data" / f"smplx_measurements_to_betas_{gender}.json"
+            try:
                 with open(regressor_path) as f:
                     data = json.load(f)
-                    self.betas_regressor[gender] = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+            except FileNotFoundError as e:
+                self.report({'ERROR'}, f"Measurements regressor file not found: {e.filename}")
+                return {'CANCELLED'}
+            self.betas_regressor[gender] = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
 
-        gender = obj["smplx_gender"]
         (A, B) = self.betas_regressor[gender]
 
         # Calculate beta values from measurements
@@ -296,19 +303,26 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
         num_betas = len(betas)
         betas = np.array(betas)
 
-        # Cache regressor files for the active model on first use
-        cache = self.j_regressor.setdefault(spec.id, {})
-        for gender in variants["genders"]:
-            gender_cache = cache.setdefault(gender, {})
-            for betas_key in variants["betas"]:
-                if gender_cache.get(betas_key) is None:
-                    gender_cache[betas_key] = self.load_regressor(spec, gender, betas_key)
-
         key = f"{num_betas}"
         if spec.id == "smplx" and obj.get("smplx_version") == "locked_head":
             key += "_lh"
         gender = obj.get(f"{spec.id}_gender")
-        regressor = cache.get(gender, {}).get(key)
+
+        if gender not in variants["genders"] or key not in variants["betas"]:
+            self.report({'WARNING'}, f"No joint regressor for gender '{gender}' with {num_betas} betas")
+            return {'CANCELLED'}
+
+        # Lazily load and cache only the specific regressor we need.
+        # Eager loading would fail when DLC variants (e.g. SMPL-X v1.1) are not installed.
+        gender_cache = self.j_regressor.setdefault(spec.id, {}).setdefault(gender, {})
+        if gender_cache.get(key) is None:
+            try:
+                gender_cache[key] = self.load_regressor(spec, gender, key)
+            except FileNotFoundError as e:
+                self.report({'ERROR'}, f"Joint regressor file not found: {e.filename}")
+                return {'CANCELLED'}
+
+        regressor = gender_cache[key]
         if regressor is None or regressor[0] is None:
             self.report({'WARNING'}, f"No joint regressor for gender '{gender}' with {num_betas} betas")
             return {'CANCELLED'}

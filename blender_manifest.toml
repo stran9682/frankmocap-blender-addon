@@ -4,7 +4,7 @@ id = "smplx_blender_addon"
 version = "1.0.0"
 name = "SMPL-X for Blender"
 tagline = "SMPL-X/SMPL+H body models, shape/pose/animation/export tools"
-maintainer = "Joachim Tesch <smplx-blender@tue.mpg.de>"
+maintainer = "Joachim Tesch, Max Planck Institute for Intelligent Systems <smplx-blender@tue.mpg.de>"
 type = "add-on"
 
 website = "https://smpl-x.is.tue.mpg.de/"
