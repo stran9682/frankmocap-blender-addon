@@ -1,7 +1,7 @@
 import tomllib
 from pathlib import Path
 
-SHAPEKEY_VALUE_RANGE = 5
+SHAPEKEY_VALUE_RANGE = 10
 
 ADDON_ROOT = Path(__file__).resolve().parent.parent
 

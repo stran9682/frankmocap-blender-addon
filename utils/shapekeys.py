@@ -1,7 +1,8 @@
 from .constants import SHAPEKEY_VALUE_RANGE
 
 
-# Ensure that we have valid slider ranges, this needed for imported FBX files where the default range will be set to [0,1] on import
+# Ensure that we have valid slider ranges
+# This is needed for imported FBX files where the default range could be at default [0,1] for some shape keys after import
 def smplx_ensure_valid_shapekey_slider_ranges(skinned_mesh):
     update_slider_ranges = False
     for key_name in ["Shape000", "Exp000", "Pose000"]:
