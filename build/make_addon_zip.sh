@@ -19,6 +19,7 @@ common_files=(
   smplx_blender_addon/preferences
   smplx_blender_addon/properties
   smplx_blender_addon/utils
+  smplx_blender_addon/CHANGELOG.md
   smplx_blender_addon/LICENSE.md
   smplx_blender_addon/README.md
   smplx_blender_addon/data/*.npz
