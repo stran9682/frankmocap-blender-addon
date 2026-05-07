@@ -61,3 +61,5 @@
     + SMPL-X locked head default model will be included in official add-on distribution
     + SMPL-X v1.1 is now an optional DLC install available at https://smpl-x.is.tue.mpg.de/
     + SMPL+H is an optional DLC install available at https://mano.is.tue.mpg.de/
++ 20260507 (1.0.1):
+  + Add options to set UV2023 and UV2021 sample textures for SMPL+H

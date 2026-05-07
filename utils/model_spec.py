@@ -57,12 +57,7 @@ SMPLX_TEXTURE_ITEMS = (
     ("COLOR_GRID", "Color Grid", ""),
 )
 
-SMPLH_TEXTURE_ITEMS = (
-    ("NONE", "None", ""),
-    ("UV_GRID", "Grid", ""),
-    ("COLOR_GRID", "Checker", ""),
-)
-
+SMPLH_TEXTURE_ITEMS = SMPLX_TEXTURE_ITEMS
 
 SMPLX_GENDER_ITEMS = (
     ("female", "Female", ""),
