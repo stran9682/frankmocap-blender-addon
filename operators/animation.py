@@ -177,7 +177,7 @@ class SMPLXAddAnimation(bpy.types.Operator, ImportHelper):
             context.scene.frame_end = num_keyframes
 
         wm = context.window_manager
-        show_progress = not bpy.app.background
+        show_progress = not bpy.app.background and num_keyframes > 0
         if show_progress:
             # Percentage-based scale so the cursor's fractional-percent row
             # (2 decimal digits on Windows) always reads "00".

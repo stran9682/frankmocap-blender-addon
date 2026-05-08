@@ -63,3 +63,5 @@
     + SMPL+H is an optional DLC install available at https://mano.is.tue.mpg.de/
 + 20260507 (1.0.1):
   + Add options to set UV2023 and UV2021 sample textures for SMPL+H
++ 20260508 (1.0.2):
+  + Fix progress indicator error when loading very short animations
