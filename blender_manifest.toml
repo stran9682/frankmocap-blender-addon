@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "smplx_blender_addon"
-version = "1.0.2"
+version = "1.0.3"
 name = "SMPL-X for Blender"
 tagline = "SMPL-X/SMPL+H body models, shape/pose/animation/export tools"
 maintainer = "Joachim Tesch, Max Planck Institute for Intelligent Systems <smplx-blender@tue.mpg.de>"

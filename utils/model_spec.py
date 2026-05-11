@@ -68,6 +68,7 @@ SMPLX_GENDER_ITEMS = (
 SMPLH_GENDER_ITEMS = (
     ("female", "Female", ""),
     ("male", "Male", ""),
+    ("neutral", "Neutral", ""),
 )
 
 
@@ -128,7 +129,7 @@ MODELS: dict[str, ModelSpec] = {
         num_body_joints=21,
         num_hand_joints=15,
         handposes_file="smplx_handposes.npz",
-        regressor_template="smplh_betas_to_joints_{gender}_16.json",
+        regressor_template="smplh_betas_to_joints_{gender}_300.json",
         source_url="https://mano.is.tue.mpg.de/",
         has_expressions=False,
         has_measurements_to_betas=False,
@@ -137,7 +138,7 @@ MODELS: dict[str, ModelSpec] = {
         texture_items=SMPLH_TEXTURE_ITEMS,
         gender_items=SMPLH_GENDER_ITEMS,
         has_corrective_poseshapes=True,
-        blend_files={"default": "smplh_model_20260428.blend"},
+        blend_files={"default": "smplh_model_20260511.blend"},
     ),
 }
 

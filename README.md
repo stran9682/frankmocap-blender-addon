@@ -15,12 +15,12 @@ This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) or [SMPL+H]
 
   + SMPL+H (optional)
     + available as DLC on [MANO Website](https://mano.is.tue.mpg.de/)
-    + 16 shape components, no expression components
-    + female/male
+    + 300 shape components, no expression components
+    + female/male/neutral
     + backwards compatible with SMPL model
 
 ## Features
-+ Add female/male/neutral SMPL-X or female/male SMPL+H mesh to current scene
++ Add female/male/neutral SMPL-X/SMPL+H mesh to current scene
 + Set sample albedo texture
 + Set body shape from height and weight measurements (SMPL-X)
 + Randomize/reset shape

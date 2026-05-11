@@ -65,3 +65,5 @@
   + Add options to set UV2023 and UV2021 sample textures for SMPL+H
 + 20260508 (1.0.2):
   + Fix progress indicator error when loading very short animations
++ 20260511 (1.0.3):
+  + Use new SMPL+H DLC (20260511) with 300 shape components and female/male/neutral model versions

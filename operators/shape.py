@@ -245,8 +245,8 @@ class SMPLXUpdateJointLocations(bpy.types.Operator):
             "betas": ("300", "300_lh"),
         },
         "smplh": {
-            "genders": ("female", "male"),
-            "betas": ("16",),
+            "genders": ("female", "male", "neutral"),
+            "betas": ("300",),
         },
     }
 
