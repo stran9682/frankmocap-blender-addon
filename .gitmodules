@@ -1,0 +1,3 @@
+[submodule "frankmocap"]
+	path = frankmocap
+	url = https://github.com/stran9682/frankmocap.git
