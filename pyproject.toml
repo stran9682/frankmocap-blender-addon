@@ -1,0 +1,23 @@
+[project]
+name = "frankmocap"
+version = "0.6.9"
+dependencies = [
+  "opencv-python",
+  "huggingface_hub",
+  "PyOpenGL",
+  "PyOpenGL_accelerate",
+  "tensorboardX",
+  "jinja2",
+  "smplx",
+  "scikit-learn",
+  "torch",
+  "detectron2@git+https://github.com/facebookresearch/detectron2.git",
+  "hf",
+  "torchvision",
+  "torchgeometry",
+  "chumpy"
+]
+[tool.uv.extra-build-dependencies]
+detectron2 = ["torch"]
+chumpy = ["pip"]
+opendr = ["numpy"]
