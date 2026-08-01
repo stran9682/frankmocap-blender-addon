@@ -35,6 +35,8 @@ def build_detectron2(modules_path, env):
     except subprocess.CalledProcessError as e:
         print(f"[Installer] Error occurred while building detectron2: {e}")
 
+    shutil.rmtree(detectron2_path)
+
 def install_pose_2d(frankmocap_dir):
     import git
 
