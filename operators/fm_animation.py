@@ -6,9 +6,12 @@ from ..frankmocap.demo.demo_frankmocap import __filter_bbox_list
 from ..frankmocap.handmocap.hand_mocap_api import HandMocap
 from ..frankmocap.bodymocap.body_mocap_api import BodyMocap
 from ..frankmocap.handmocap.hand_bbox_detector import HandBboxDetector
-from collections import OrderedDict
 
 class FMAddAnination(bpy.types.Operator, ImportHelper):
+    bl_idname = "object.fm_add_animation"
+    bl_label = "Add Frankmocap Animation"
+    bl_description = ("Load video and produce SMPlX model")
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context): 
         import cv2
@@ -27,9 +30,11 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
 
         input_data = cv2.VideoCapture(self.filepath)
 
-        video_frame = 0
+        frames_data = []
         while True:
             _, img_original_bgr = input_data.read()
+            if img_original_bgr is None:
+                break
 
             body_bbox_list, hand_bbox_list, pred_output_list = run_regress(
                 img_original_bgr, 
@@ -37,14 +42,36 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
                 body_mocap, hand_mocap)
 
             if len(body_bbox_list) < 1: 
-                print(f"No body deteced, frame: {video_frame}")
                 continue
 
-            saved_data = output_to_pkl(len(hand_bbox_list), pred_output_list)
+            pred_output = output_to_pkl(len(hand_bbox_list), pred_output_list)
 
             # Append to np array
+            frame = {
+                'betas': pred_output['pred_betas'][0],  # (10,)
+                'global_orient': pred_output['pred_body_pose'][0][:3],  # (3,)
+                'body_pose': pred_output['pred_body_pose'][0][3:66],  # (63,)
+                'left_hand_pose': pred_output['pred_left_hand_pose'][0],  # (45,)
+                'right_hand_pose': pred_output['pred_right_hand_pose'][0],  # (45,)
+            }
 
-            
+            frames_data.append(frame)
+
+        poses = np.array([
+            np.concatenate([
+                frame['global_orient'],
+                frame['body_pose'],
+                frame['left_hand_pose'],
+                frame['right_hand_pose']
+            ])
+            for frame in frames_data
+        ])
+
+        betas = frames_data[0]['betas']
+
+        # Pass to blender
+
+
 def run_regress(
     img_original_bgr, 
     hand_bbox_detector,
@@ -107,3 +134,7 @@ def output_to_pkl(
         saved_data.append(saved_pred_output) 
 
     return saved_data 
+
+classes = (
+    FMAddAnination
+)

@@ -145,6 +145,7 @@ class SMPLX_PT_Animation(bpy.types.Panel):
         col = layout.column(align=True)
 
         col.operator("object.smplx_add_animation")
+        col.operator("object.fm_add_animation")
 
 
 class SMPLX_PT_Export(bpy.types.Panel):

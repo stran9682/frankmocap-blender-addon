@@ -1,10 +1,10 @@
 if "bpy" in locals():
     import importlib
-    from . import model, shape, pose, animation, export
-    for _m in (model, shape, pose, animation, export):
+    from . import model, shape, pose, animation, export, fm_animation
+    for _m in (model, shape, pose, animation, export, fm_animation):
         importlib.reload(_m)
 else:
-    from . import model, shape, pose, animation, export
+    from . import model, shape, pose, animation, export, fm_animation
 
 import bpy
 
@@ -14,6 +14,7 @@ classes = (
     *pose.classes,
     *animation.classes,
     *export.classes,
+    *fm_animation.classes,
 )
 
 
