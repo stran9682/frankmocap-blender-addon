@@ -1,3 +1,13 @@
+# Frankmocap for Blender
+
+Adds motion capture from videos using Frankmocap to the SMPL-X Blender Addon (Windows Only)
+
+## Modfied Installation Instructions
+1. Clone the repository to Blender's extension folder. The extensions folder is most likely going to be at: `%APPDATA%\Roaming\Blender Foundation\Blender\5.1\extensions\user_default\`
+2. You'll need to add header files and libs to Blender's Python installation to build several dependencies for Frankmocap. Easiest way for me was from a Python 3.14 installation, copying over the `include\` and `libs\` folders into Blender's python. My Blender's python was located at `C:\Program Files\Blender Foundation\Blender 5.1\5.1\python`
+3. Make sure you have the Visual Studio C++ toolset installed as well. The first part of this [video](https://www.youtube.com/watch?v=MYLMM7jOMS4) provides quick instructions if you don't. 
+4. From the DLC instructions below, install the SMPL-H DLC. You'll extract the contents into the `\data` folder of this repository
+
 # SMPL-X Blender Add-on
 
 This add-on allows you to add [SMPL-X](https://smpl-x.is.tue.mpg.de) or [SMPL+H](https://mano.is.tue.mpg.de/) body models as skinned meshes to your current Blender scene. Each mesh consists of a shape specific rig, as well as shape keys (blend shapes) for shape, expression (SMPL-X) and pose correctives.
