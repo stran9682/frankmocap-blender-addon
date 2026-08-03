@@ -82,8 +82,9 @@ def install_pose_2d(frankmocap_dir):
     url = "https://download.01.org/opencv/openvino_training_extensions/models/human_pose_estimation/checkpoint_iter_370000.pth"
     filename = 'checkpoint_iter_370000.pth'
 
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
 def download_data_body_module(frankmocap_dir):
 
@@ -100,8 +101,10 @@ def download_data_body_module(frankmocap_dir):
         
     url = "http://visiondata.cis.upenn.edu/spin/data.tar.gz"
     filename = 'data.tar.gz'
-    print ('Downloading: '+filename)
-    download(url,filename)
+
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
     tf = tarfile.open(filename)
     tf.extractall()
@@ -123,13 +126,15 @@ def download_data_body_module(frankmocap_dir):
     print('####Downloading pretrained_weights')
     url = "https://dl.fbaipublicfiles.com/eft/2020_05_31-00_50_43-best-51.749683916568756.pt"
     filename = '2020_05_31-00_50_43-best-51.749683916568756.pt'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
     url = "https://dl.fbaipublicfiles.com/eft/fairmocap_data/body_module/smplx-03-28-46060-w_spin_mlc3d_46582-2089_2020_03_28-21_56_16.pt"
     filename = 'smplx-03-28-46060-w_spin_mlc3d_46582-2089_2020_03_28-21_56_16.pt'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
     path = os.path.join(frankmocap_dir, "extra_data", "body_module")
     os.chdir(path)
@@ -137,8 +142,9 @@ def download_data_body_module(frankmocap_dir):
     print('####Downloading other data')
     url = "https://dl.fbaipublicfiles.com/eft/fairmocap_data/body_module/J_regressor_extra_smplx.npy"
     filename = 'J_regressor_extra_smplx.npy'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
 
 def install_hand_detectors(frankmocap_dir, modules_path, env):
@@ -221,13 +227,15 @@ def download_data_hand_module (frankmocap_dir):
     #### downloading other data
     url = "https://dl.fbaipublicfiles.com/eft/fairmocap_data/hand_module/SMPLX_HAND_INFO.pkl"
     filename = 'SMPLX_HAND_INFO.pkl'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
     url = "https://dl.fbaipublicfiles.com/eft/fairmocap_data/hand_module/mean_mano_params.pkl"
     filename = 'mean_mano_params.pkl'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
     path = os.path.join(frankmocap_dir, "extra_data", "hand_module", "pretrained_weights")
     try:
@@ -241,8 +249,9 @@ def download_data_hand_module (frankmocap_dir):
 
     url = "https://dl.fbaipublicfiles.com/eft/fairmocap_data/hand_module/checkpoints_best/pose_shape_best.pth"
     filename = 'pose_shape_best.pth'
-    print ('Downloading: '+filename)
-    download(url,filename)
+    if not os.path.exists(path+'/'+filename):
+        print ('Downloading: '+filename)
+        download(url,filename)
 
 def install_models(frankmocap_dir):
     print("[Installer] installing smpl models from huggingface")      

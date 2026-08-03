@@ -1,3 +1,5 @@
+import os
+
 import bpy
 import numpy as np
 from bpy_extras.io_utils import ImportHelper
@@ -22,11 +24,21 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
 
         hand_bbox_detector =  HandBboxDetector('third_view', device) 
 
-        default_checkpoint_body_smplx ='./extra_data/body_module/pretrained_weights/smplx-03-28-46060-w_spin_mlc3d_46582-2089_2020_03_28-21_56_16.pt'
-        body_mocap = BodyMocap(default_checkpoint_body_smplx, './extra_data/smpl/', device = device, use_smplx= True)
+        CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+        extra_data_dir = os.path.abspath(os.path.join(CURRENT_DIR, "..", "frankmocap", "extra_data"))
+        smpl_dir = os.path.abspath(os.path.join(CURRENT_DIR, "..", "frankmocap", "extra_data", "smpl"))
 
-        default_checkpoint_hand = "./extra_data/hand_module/pretrained_weights/pose_shape_best.pth"
-        hand_mocap = HandMocap(default_checkpoint_hand, './extra_data/smpl/', device = device)
+        default_checkpoint_body_smplx = os.path.join(
+            os.path.join(extra_data_dir, "body_module", "pretrained_weights"), 
+            "smplx-03-28-46060-w_spin_mlc3d_46582-2089_2020_03_28-21_56_16.pt"
+        )
+        body_mocap = BodyMocap(default_checkpoint_body_smplx, smpl_dir, device = device, use_smplx= True)
+
+        default_checkpoint_hand = os.path.join(
+            os.path.join(extra_data_dir, "hand_module", "pretrained_weights"), 
+            "pose_shape_best.pth"
+        )
+        hand_mocap = HandMocap(default_checkpoint_hand, smpl_dir, device = device)
 
         input_data = cv2.VideoCapture(self.filepath)
 
@@ -38,8 +50,10 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
 
             body_bbox_list, hand_bbox_list, pred_output_list = run_regress(
                 img_original_bgr, 
-                body_bbox_list, hand_bbox_list, hand_bbox_detector,
-                body_mocap, hand_mocap)
+                hand_bbox_detector,
+                body_mocap, 
+                hand_mocap
+            )
 
             if len(body_bbox_list) < 1: 
                 continue
@@ -136,5 +150,5 @@ def output_to_pkl(
     return saved_data 
 
 classes = (
-    FMAddAnination
+    FMAddAnination,
 )
