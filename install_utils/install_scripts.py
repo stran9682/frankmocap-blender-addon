@@ -55,7 +55,7 @@ def install_pose_2d(frankmocap_dir):
         if not os.path.exists(path+'/lightweight-human-pose-estimation.pytorch'):
             os.chdir(path)
             print('downloading lightweight-human-pose-estimation.pytorch')
-            git.Git(path).clone('https://github.com/jhugestar/lightweight-human-pose-estimation.pytorch.git')
+            git.Git(path).clone('https://github.com/stran9682/lightweight-human-pose-estimation.pytorch.git')
             if not os.path.exists(path+'/body_pose_estimator'):
                 os.rename('lightweight-human-pose-estimation.pytorch','body_pose_estimator')
         else:

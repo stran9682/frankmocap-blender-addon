@@ -48,7 +48,7 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
             if img_original_bgr is None:
                 break
 
-            body_bbox_list, hand_bbox_list, pred_output_list = run_regress(
+            body_bbox_list, _, pred_output_list = run_regress(
                 img_original_bgr, 
                 hand_bbox_detector,
                 body_mocap, 
@@ -58,10 +58,9 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
             if len(body_bbox_list) < 1: 
                 continue
 
-            pred_output = output_to_pkl(len(hand_bbox_list), pred_output_list)
+            pred_output = extract_output(pred_output_list)
 
-            # Append to np array
-            frame = {
+            frame_data =  {
                 'betas': pred_output['pred_betas'][0],  # (10,)
                 'global_orient': pred_output['pred_body_pose'][0][:3],  # (3,)
                 'body_pose': pred_output['pred_body_pose'][0][3:66],  # (63,)
@@ -69,7 +68,7 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
                 'right_hand_pose': pred_output['pred_right_hand_pose'][0],  # (45,)
             }
 
-            frames_data.append(frame)
+            frames_data.append(frame_data)
 
         poses = np.array([
             np.concatenate([
@@ -79,12 +78,13 @@ class FMAddAnination(bpy.types.Operator, ImportHelper):
                 frame['right_hand_pose']
             ])
             for frame in frames_data
-        ])
+        ]) 
 
         betas = frames_data[0]['betas']
 
-        # Pass to blender
+        trans = np.zeros((len(frames_data), 3))
 
+        return {'FINISHED'}
 
 def run_regress(
     img_original_bgr, 
@@ -122,32 +122,24 @@ def run_regress(
     
     return body_bbox_list, hand_bbox_list, integral_output_list
 
-def output_to_pkl(
-    num_subject, 
-    pred_output_list
-):
-    saved_data = list()
-    
-    for s_id in range(num_subject):
-        # predict params
-        pred_output = pred_output_list[s_id]
-        if pred_output is None:
-            saved_pred_output = None
-        else: 
-            saved_pred_output = dict()
-            for pred_key in pred_output:
-                if pred_key.find("vertices")<0 or pred_key == 'faces' :
-                    saved_pred_output[pred_key] = pred_output[pred_key]
+def extract_output(pred_output_list):
+
+    pred_output = pred_output_list[0]
+    if pred_output is None:
+        return None
+    else: 
+        saved_pred_output = dict()
+        for pred_key in pred_output:
+            if pred_key.find("vertices")<0 or pred_key == 'faces' :
+                saved_pred_output[pred_key] = pred_output[pred_key]
+            else:
+                if pred_key != 'faces':
+                    saved_pred_output[pred_key] = \
+                        pred_output[pred_key].astype(np.float16)
                 else:
-                    if pred_key != 'faces':
-                        saved_pred_output[pred_key] = \
-                            pred_output[pred_key].astype(np.float16)
-                    else:
-                        saved_pred_output[pred_key] = pred_output[pred_key]
+                    saved_pred_output[pred_key] = pred_output[pred_key]
 
-        saved_data.append(saved_pred_output) 
-
-    return saved_data 
+        return saved_pred_output
 
 classes = (
     FMAddAnination,
